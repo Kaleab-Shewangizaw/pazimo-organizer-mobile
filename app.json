@@ -1,15 +1,19 @@
 {
   "expo": {
-    "name": "pazimo-organizer-mobile",
+    "name": "Pazimo Organizer",
     "slug": "pazimo-organizer-mobile",
+    "scheme": "pazimoorganizer",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pazimo.organizer"
     },
     "android": {
+      "package": "com.pazimo.organizer",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -20,6 +24,20 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Pazimo needs camera access so you can scan ticket QR codes at the door."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }
