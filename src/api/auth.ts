@@ -2,11 +2,19 @@ import { apiRequest } from "@/api/client";
 import type {
   LoginResponse,
   MeResponse,
+  OrganizerOtpSentResponse,
+  OrganizerOtpVerifyResponse,
   OrganizerSignUpInput,
   OrganizerSignUpResponse,
+  OtpChannel,
   SendOtpResponse,
 } from "@/types";
 
+/**
+ * POST /api/auth/login. For an organizer account this returns
+ * `requiresOtp: true` with no token — the caller must follow up with
+ * verifyOrganizerOtp(email, code) using the email echoed back here.
+ */
 export function login(email: string, password: string) {
   return apiRequest<LoginResponse>("/auth/login", {
     method: "POST",
@@ -20,12 +28,38 @@ export function getCurrentUser() {
 }
 
 /**
+ * POST /api/auth/organizer/send-otp — the standalone "sign in with a code"
+ * path (no password). Looks the organizer up by email; 404s if there's no
+ * active organizer at that email, same as a login failure would.
+ */
+export function organizerSendOtp(email: string, channel: OtpChannel = "sms") {
+  return apiRequest<OrganizerOtpSentResponse>("/auth/organizer/send-otp", {
+    method: "POST",
+    body: { email, channel },
+    auth: false,
+  });
+}
+
+/**
+ * POST /api/auth/organizer/verify-otp — completes both the mandatory
+ * post-password 2FA step from login() and the standalone code-only sign-in
+ * from organizerSendOtp(). Code is single-use, expires after 10 minutes,
+ * and the account is capped at 5 wrong attempts before it must be resent.
+ */
+export function verifyOrganizerOtp(email: string, code: string) {
+  return apiRequest<OrganizerOtpVerifyResponse>("/auth/organizer/verify-otp", {
+    method: "POST",
+    body: { email, code },
+    auth: false,
+  });
+}
+
+/**
  * Backend: POST /api/auth/send-otp (backend/src/controllers/authController.js).
- * Triggers a real SMS via GeezSMS to `phoneNumber`. There is currently no
- * matching verify-otp endpoint — see README "Backend limitations". Do not
- * wire this up to compare against anything the response body returns; the
- * backend's own security review (docs/SECURITY_VULNERABILITIES.md #11)
- * flags trusting client-side OTP state as a known gap.
+ * Triggers a real SMS via GeezSMS to `phoneNumber`. This is a *different*
+ * mechanism from organizerSendOtp/verifyOrganizerOtp above — it has no
+ * matching verify endpoint and isn't wired into organizer sign-up, so it's
+ * still UI-only there. See README "Backend limitations".
  */
 export function sendOtp(phoneNumber: string) {
   return apiRequest<SendOtpResponse>("/auth/send-otp", {

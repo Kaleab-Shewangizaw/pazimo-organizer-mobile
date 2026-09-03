@@ -19,14 +19,38 @@ export interface User {
   isPhoneVerified?: boolean;
 }
 
-export interface LoginResponse {
-  status: "success";
-  data: { user: User; token: string };
-}
+export type OtpChannel = "sms" | "email";
+
+/**
+ * POST /api/auth/login now issues a mandatory second factor for organizers
+ * (added 2026-09-04): the password step alone returns `requiresOtp: true`
+ * with no token, and the client must complete sign-in via
+ * POST /api/auth/organizer/verify-otp. Any other role gets a token
+ * immediately, same as before.
+ */
+export type LoginResponse =
+  | { status: "success"; requiresOtp?: false; data: { user: User; token: string } }
+  | {
+      status: "success";
+      requiresOtp: true;
+      data: { email: string; channel: OtpChannel; maskedDestination: string };
+    };
 
 export interface MeResponse {
   status: "success";
   data: User;
+}
+
+export interface OrganizerOtpSentResponse {
+  status: "success";
+  channel: OtpChannel;
+  maskedDestination: string;
+  message: string;
+}
+
+export interface OrganizerOtpVerifyResponse {
+  status: "success";
+  data: { user: User; token: string };
 }
 
 export interface ApiErrorBody {
