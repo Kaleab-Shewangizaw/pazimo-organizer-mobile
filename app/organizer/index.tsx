@@ -15,8 +15,9 @@ import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { EventCard } from "@/components/EventCard";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { StatTile } from "@/components/StatTile";
+import { StubDivider } from "@/components/StubDivider";
 import { bannerMessageFor } from "@/lib/errors";
+import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
 import { colors } from "@/lib/theme";
 import { useAuthStore } from "@/store/authStore";
@@ -70,33 +71,30 @@ export default function OrganizerHomeScreen() {
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.navy} />
         }
         ListHeaderComponent={
           <View style={styles.header}>
-            <View style={styles.greetingRow}>
-              <View>
-                <Text style={styles.greeting}>
-                  Welcome back, {user?.firstName}
-                </Text>
-                <Text style={styles.subtitle}>Here's how your events are doing</Text>
-              </View>
+            <View>
+              <Text style={styles.greeting}>Good to see you, {user?.firstName}</Text>
+              <Text style={styles.subtitle}>Here's tonight's tally</Text>
             </View>
 
-            <View style={styles.statGrid}>
-              <StatTile label="Total events" value={String(stats.totalEvents)} />
-              <StatTile label="Published" value={String(stats.publishedEvents)} />
-              <StatTile
-                label="Available balance"
-                value={formatMoney(balance.availableBalance, CURRENCY)}
-              />
-              <StatTile
-                label="Total revenue"
-                value={formatMoney(balance.totalRevenue, CURRENCY)}
-              />
+            <BalanceStub
+              available={balance.availableBalance}
+              totalRevenue={balance.totalRevenue}
+              pending={balance.pendingWithdrawals}
+            />
+
+            <View style={styles.statStrip}>
+              <StatStripItem value={stats.totalEvents} label="Events" />
+              <View style={styles.statDivider} />
+              <StatStripItem value={stats.publishedEvents} label="Published" />
+              <View style={styles.statDivider} />
+              <StatStripItem value={stats.draftEvents} label="Draft" />
             </View>
 
-            <Text style={styles.sectionTitle}>Your events</Text>
+            <Text style={styles.sectionEyebrow}>Your events</Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -123,47 +121,151 @@ export default function OrganizerHomeScreen() {
   );
 }
 
+function BalanceStub({
+  available,
+  totalRevenue,
+  pending,
+}: {
+  available: number;
+  totalRevenue: number;
+  pending: number;
+}) {
+  return (
+    <View style={styles.stub}>
+      <Text style={styles.stubEyebrow}>Available balance</Text>
+      <Text style={styles.stubFigure}>{formatMoney(available, CURRENCY)}</Text>
+
+      <StubDivider background={colors.surface} />
+
+      <View style={styles.stubFooter}>
+        <StubFooterItem label="Total revenue" value={formatMoney(totalRevenue, CURRENCY)} />
+        <StubFooterItem label="Pending payout" value={formatMoney(pending, CURRENCY)} />
+      </View>
+    </View>
+  );
+}
+
+function StubFooterItem({ label, value }: { label: string; value: string }) {
+  return (
+    <View>
+      <Text style={styles.stubFooterValue}>{value}</Text>
+      <Text style={styles.stubFooterLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function StatStripItem({ value, label }: { value: number; label: string }) {
+  return (
+    <View style={styles.statItem}>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.paper,
   },
   listContent: {
     padding: 20,
     gap: 12,
   },
   header: {
-    gap: 16,
+    gap: 20,
     marginBottom: 4,
   },
-  greetingRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
   greeting: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.text,
+    fontFamily: fonts.bold,
+    fontSize: 21,
+    color: colors.ink,
   },
   subtitle: {
     fontSize: 14,
     color: colors.textMuted,
     marginTop: 2,
   },
-  statGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
+
+  stub: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 20,
+    paddingTop: 22,
+    paddingBottom: 4,
   },
-  sectionTitle: {
-    fontSize: 16,
+  stubEyebrow: {
+    fontSize: 12,
     fontWeight: "700",
-    color: colors.text,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    color: colors.textMuted,
+  },
+  stubFigure: {
+    fontFamily: fonts.extrabold,
+    fontSize: 34,
+    color: colors.gold,
+    marginTop: 6,
+    marginBottom: 18,
+  },
+  stubFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingTop: 16,
+    paddingBottom: 18,
+  },
+  stubFooterValue: {
+    fontFamily: fonts.semibold,
+    fontSize: 16,
+    color: colors.ink,
+  },
+  stubFooterLabel: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+
+  statStrip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: 14,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  statDivider: {
+    width: 1,
+    alignSelf: "stretch",
+    backgroundColor: colors.border,
+  },
+  statValue: {
+    fontFamily: fonts.bold,
+    fontSize: 20,
+    color: colors.ink,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+
+  sectionEyebrow: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    color: colors.textMuted,
     marginTop: 4,
   },
   eventCardWrap: {
-    marginBottom: 12,
+    marginBottom: 14,
   },
   signOut: {
     marginTop: 8,

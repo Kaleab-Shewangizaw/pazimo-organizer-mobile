@@ -1,6 +1,8 @@
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { StatusBadge } from "@/components/StatusBadge";
+import { StubDivider } from "@/components/StubDivider";
+import { fonts } from "@/lib/fonts";
 import { formatEventDateRange, formatMoney } from "@/lib/format";
 import { colors } from "@/lib/theme";
 import type { Currency, DashboardEvent } from "@/types";
@@ -22,27 +24,30 @@ export function EventCard({ event, currency, onPress }: EventCardProps) {
       {cover ? (
         <Image source={{ uri: cover }} style={styles.cover} />
       ) : (
-        <View style={[styles.cover, styles.coverFallback]} />
+        <View style={[styles.cover, styles.coverFallback]}>
+          <Text style={styles.coverInitial}>{event.title.charAt(0).toUpperCase()}</Text>
+        </View>
       )}
 
-      <View style={styles.body}>
+      <View style={styles.top}>
         <View style={styles.titleRow}>
           <Text style={styles.title} numberOfLines={1}>
             {event.title}
           </Text>
           <StatusBadge status={event.status} />
         </View>
-
         <Text style={styles.date}>
           {formatEventDateRange(event.startDate, event.endDate)}
           {event.location?.city ? ` · ${event.location.city}` : ""}
         </Text>
+      </View>
 
-        <View style={styles.metricsRow}>
-          <Metric label="Sold" value={String(event.ticketStats.total)} />
-          <Metric label="Checked in" value={String(event.ticketStats.used)} />
-          <Metric label="Revenue" value={formatMoney(event.revenue, currency)} />
-        </View>
+      <StubDivider background={colors.surface} />
+
+      <View style={styles.metricsRow}>
+        <Metric label="Sold" value={String(event.ticketStats.total)} />
+        <Metric label="Checked in" value={String(event.ticketStats.used)} />
+        <Metric label="Revenue" value={formatMoney(event.revenue, currency)} />
       </View>
     </Pressable>
   );
@@ -60,7 +65,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
     overflow: "hidden",
@@ -70,14 +75,22 @@ const styles = StyleSheet.create({
   },
   cover: {
     width: "100%",
-    height: 110,
+    height: 108,
   },
   coverFallback: {
-    backgroundColor: colors.primaryDark,
+    backgroundColor: colors.navyDeep,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  body: {
-    padding: 14,
-    gap: 8,
+  coverInitial: {
+    fontFamily: fonts.extrabold,
+    fontSize: 32,
+    color: colors.goldMuted,
+  },
+  top: {
+    padding: 16,
+    paddingBottom: 14,
+    gap: 6,
   },
   titleRow: {
     flexDirection: "row",
@@ -86,9 +99,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   title: {
+    fontFamily: fonts.bold,
     fontSize: 16,
-    fontWeight: "700",
-    color: colors.text,
+    color: colors.ink,
     flexShrink: 1,
   },
   date: {
@@ -98,18 +111,20 @@ const styles = StyleSheet.create({
   metricsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 4,
+    padding: 16,
+    paddingTop: 14,
   },
   metric: {
     alignItems: "flex-start",
   },
   metricValue: {
+    fontFamily: fonts.semibold,
     fontSize: 15,
-    fontWeight: "700",
-    color: colors.text,
+    color: colors.ink,
   },
   metricLabel: {
     fontSize: 12,
     color: colors.textMuted,
+    marginTop: 1,
   },
 });

@@ -1,9 +1,11 @@
+import { useFonts } from "@expo-google-fonts/manrope";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { fontAssets } from "@/lib/fonts";
 import { queryClient } from "@/lib/queryClient";
 import { useAuthStore } from "@/store/authStore";
 
@@ -11,12 +13,13 @@ export default function RootLayout() {
   const status = useAuthStore((s) => s.status);
   const role = useAuthStore((s) => s.user?.role) as string | undefined;
   const bootstrap = useAuthStore((s) => s.bootstrap);
+  const [fontsLoaded] = useFonts(fontAssets);
 
   useEffect(() => {
     bootstrap();
   }, [bootstrap]);
 
-  if (status === "checking") {
+  if (status === "checking" || !fontsLoaded) {
     return <LoadingScreen />;
   }
 

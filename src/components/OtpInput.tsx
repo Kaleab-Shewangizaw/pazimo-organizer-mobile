@@ -70,12 +70,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   boxActive: {
-    borderColor: colors.primary,
+    borderColor: colors.navy,
   },
   boxText: {
     fontSize: 20,
     fontWeight: "600",
-    color: colors.text,
+    color: colors.ink,
     textAlign: "center",
     padding: 0,
   },

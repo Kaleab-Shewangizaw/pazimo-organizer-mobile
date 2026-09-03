@@ -43,7 +43,7 @@ export function Button({
     >
       {loading ? (
         <ActivityIndicator
-          color={variant === "primary" ? colors.surface : colors.primary}
+          color={variant === "primary" ? colors.surface : colors.navy}
         />
       ) : (
         <Text
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   primary: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.navy,
   },
   secondary: {
     backgroundColor: colors.surface,
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   secondaryText: {
-    color: colors.text,
+    color: colors.ink,
     fontSize: 16,
     fontWeight: "600",
   },

@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: colors.text,
+    color: colors.ink,
     marginTop: 20,
   },
   subtitle: {

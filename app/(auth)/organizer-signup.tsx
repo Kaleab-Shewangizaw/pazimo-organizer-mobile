@@ -17,6 +17,7 @@ import {
   type OrganizerOrgValues,
 } from "@/features/auth/schemas";
 import { bannerMessageFor } from "@/lib/errors";
+import { fonts } from "@/lib/fonts";
 import { colors } from "@/lib/theme";
 
 const ORGANIZER_TYPES = [
@@ -460,8 +461,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   stepDotActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: colors.navy,
+    borderColor: colors.navy,
   },
   stepDotText: {
     fontSize: 13,
@@ -476,16 +477,16 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   stepLabelActive: {
-    color: colors.text,
+    color: colors.ink,
     fontWeight: "600",
   },
   form: {
     gap: 16,
   },
   stepTitle: {
+    fontFamily: fonts.bold,
     fontSize: 20,
-    fontWeight: "700",
-    color: colors.text,
+    color: colors.ink,
   },
   stepSubtitle: {
     fontSize: 14,
@@ -509,7 +510,7 @@ const styles = StyleSheet.create({
   chipLabel: {
     fontSize: 14,
     fontWeight: "600",
-    color: colors.text,
+    color: colors.ink,
   },
   chipRow: {
     flexDirection: "row",
@@ -525,13 +526,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   chipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: colors.navy,
+    borderColor: colors.navy,
   },
   chipText: {
     fontSize: 13,
     fontWeight: "600",
-    color: colors.text,
+    color: colors.ink,
   },
   chipTextActive: {
     color: colors.surface,
@@ -569,7 +570,7 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: 14,
     fontWeight: "600",
-    color: colors.text,
+    color: colors.ink,
     flexShrink: 1,
     textAlign: "right",
   },
@@ -598,9 +599,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   successTitle: {
+    fontFamily: fonts.bold,
     fontSize: 22,
-    fontWeight: "700",
-    color: colors.text,
+    color: colors.ink,
   },
   successBody: {
     fontSize: 15,

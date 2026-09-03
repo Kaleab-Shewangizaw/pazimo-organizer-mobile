@@ -3,11 +3,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import {
-  organizerForgotPassword,
-  organizerResetPassword,
-  organizerVerifyResetCode,
-} from "@/api/auth";
+import { forgotPassword, resetPassword, verifyResetCode } from "@/api/auth";
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { OtpInput } from "@/components/OtpInput";
@@ -19,6 +15,7 @@ import {
   otpSchema,
 } from "@/features/auth/schemas";
 import { bannerMessageFor, VALIDATION_ERROR_MESSAGE } from "@/lib/errors";
+import { fonts } from "@/lib/fonts";
 import { colors } from "@/lib/theme";
 import { useAuthStore } from "@/store/authStore";
 
@@ -77,7 +74,7 @@ function RequestCodeStep({
         throw new Error(VALIDATION_ERROR_MESSAGE);
       }
       setFieldError(undefined);
-      return organizerForgotPassword(parsed.data);
+      return forgotPassword(parsed.data);
     },
     onSuccess: (res) => onSent(res.maskedDestination),
   });
@@ -89,8 +86,8 @@ function RequestCodeStep({
       <View style={styles.header}>
         <Text style={styles.title}>Reset your password</Text>
         <Text style={styles.subtitle}>
-          Enter the email or phone number on your organizer account and we'll
-          send you a code.
+          Enter the email or phone number on your account and we'll send you
+          a code.
         </Text>
       </View>
 
@@ -145,14 +142,14 @@ function EnterCodeStep({
         throw new Error(VALIDATION_ERROR_MESSAGE);
       }
       setCodeError(null);
-      await organizerVerifyResetCode(identifier, parsed.data);
+      await verifyResetCode(identifier, parsed.data);
       return parsed.data;
     },
     onSuccess: onVerified,
   });
 
   const resendMutation = useMutation({
-    mutationFn: () => organizerForgotPassword(identifier),
+    mutationFn: () => forgotPassword(identifier),
   });
 
   const verifyError = verifyMutation.isError ? bannerMessageFor(verifyMutation.error) : null;
@@ -219,7 +216,7 @@ function NewPasswordStep({ identifier, code }: { identifier: string; code: strin
         throw new Error(VALIDATION_ERROR_MESSAGE);
       }
       setErrors({});
-      const res = await organizerResetPassword(identifier, code, parsed.data);
+      const res = await resetPassword(identifier, code, parsed.data);
       await signIn(res.data.token, res.data.user);
     },
   });
@@ -273,9 +270,9 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   title: {
+    fontFamily: fonts.bold,
     fontSize: 22,
-    fontWeight: "700",
-    color: colors.text,
+    color: colors.ink,
   },
   subtitle: {
     fontSize: 15,

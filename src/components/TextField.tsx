@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: colors.text,
+    color: colors.ink,
   },
   input: {
     height: 50,
@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     paddingHorizontal: 14,
     fontSize: 16,
-    color: colors.text,
+    color: colors.ink,
     backgroundColor: colors.surface,
   },
   inputError: {

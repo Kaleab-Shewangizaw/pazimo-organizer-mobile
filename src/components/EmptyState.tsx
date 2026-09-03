@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "700",
-    color: colors.text,
+    color: colors.ink,
   },
   body: {
     fontSize: 14,

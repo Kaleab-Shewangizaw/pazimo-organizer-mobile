@@ -43,7 +43,7 @@ export function Screen({ children, scroll = true }: ScreenProps) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.paper,
   },
   flex: {
     flex: 1,
