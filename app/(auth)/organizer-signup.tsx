@@ -16,8 +16,8 @@ import {
   type OrganizerAccountValues,
   type OrganizerOrgValues,
 } from "@/features/auth/schemas";
+import { bannerMessageFor } from "@/lib/errors";
 import { colors } from "@/lib/theme";
-import { ApiError } from "@/types";
 
 const ORGANIZER_TYPES = [
   "Individual",
@@ -137,11 +137,7 @@ export default function OrganizerSignUpScreen() {
           otpError={otpError}
           otpSentTo={otpSentTo}
           isSending={sendOtpMutation.isPending}
-          sendError={
-            sendOtpMutation.isError && sendOtpMutation.error instanceof ApiError
-              ? sendOtpMutation.error.message
-              : null
-          }
+          sendError={sendOtpMutation.isError ? bannerMessageFor(sendOtpMutation.error) : null}
           onSendOtp={() => sendOtpMutation.mutate()}
           onBack={() => setStep(1)}
           onNext={goToStep4}
@@ -152,11 +148,7 @@ export default function OrganizerSignUpScreen() {
           account={account}
           org={org}
           isSubmitting={signUpMutation.isPending}
-          submitError={
-            signUpMutation.isError && signUpMutation.error instanceof ApiError
-              ? signUpMutation.error.message
-              : null
-          }
+          submitError={signUpMutation.isError ? bannerMessageFor(signUpMutation.error) : null}
           onBack={() => setStep(2)}
           onSubmit={() => signUpMutation.mutate()}
         />

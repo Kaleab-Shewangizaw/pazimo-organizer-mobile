@@ -10,9 +10,10 @@ import { OtpInput } from "@/components/OtpInput";
 import { Screen } from "@/components/Screen";
 import { TextField } from "@/components/TextField";
 import { loginSchema, otpSchema } from "@/features/auth/schemas";
+import { bannerMessageFor, VALIDATION_ERROR_MESSAGE } from "@/lib/errors";
 import { colors } from "@/lib/theme";
 import { useAuthStore } from "@/store/authStore";
-import { ApiError, type OtpChannel } from "@/types";
+import type { OtpChannel } from "@/types";
 
 interface OtpContext {
   email: string;
@@ -51,7 +52,7 @@ function PasswordStep({
           errors[String(issue.path[0])] = issue.message;
         }
         setFieldErrors(errors);
-        throw new Error("VALIDATION");
+        throw new Error(VALIDATION_ERROR_MESSAGE);
       }
       setFieldErrors({});
       const res = await login(parsed.data.email, parsed.data.password);
@@ -63,10 +64,7 @@ function PasswordStep({
     },
   });
 
-  const topLevelError =
-    mutation.isError && mutation.error instanceof ApiError
-      ? mutation.error.message
-      : null;
+  const topLevelError = mutation.isError ? bannerMessageFor(mutation.error) : null;
 
   return (
     <Screen>
@@ -142,7 +140,7 @@ function VerifyLoginOtp({
       const parsed = otpSchema.safeParse(code);
       if (!parsed.success) {
         setCodeError(parsed.error.issues[0]?.message ?? "Enter the 6-digit code");
-        throw new Error("VALIDATION");
+        throw new Error(VALIDATION_ERROR_MESSAGE);
       }
       setCodeError(null);
       const res = await verifyOrganizerOtp(context.email, parsed.data);
@@ -154,14 +152,8 @@ function VerifyLoginOtp({
     mutationFn: () => organizerSendOtp(context.email, context.channel),
   });
 
-  const verifyError =
-    verifyMutation.isError && verifyMutation.error instanceof ApiError
-      ? verifyMutation.error.message
-      : null;
-  const resendError =
-    resendMutation.isError && resendMutation.error instanceof ApiError
-      ? resendMutation.error.message
-      : null;
+  const verifyError = verifyMutation.isError ? bannerMessageFor(verifyMutation.error) : null;
+  const resendError = resendMutation.isError ? bannerMessageFor(resendMutation.error) : null;
 
   return (
     <Screen>

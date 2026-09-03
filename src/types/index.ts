@@ -87,6 +87,74 @@ export interface OrganizerSignUpInput {
   organizerType?: string;
 }
 
+export type EventStatus = "draft" | "published" | "cancelled" | "completed";
+export type Currency = "ETB" | "USD";
+
+export interface TicketType {
+  name: string;
+  price?: number;
+  priceETB?: number;
+  priceUSD?: number;
+  quantity: number;
+}
+
+/**
+ * One event as returned inside GET /api/organizers/:organizerId/dashboard's
+ * `data.events` array — already joined with its own ticket stats and
+ * revenue server-side, not a plain Event document.
+ */
+export interface DashboardEvent {
+  _id: string;
+  title: string;
+  description?: string;
+  category?: { _id: string; name: string; description?: string };
+  startDate: string;
+  endDate: string;
+  startTime?: string;
+  endTime?: string;
+  location?: { address?: string; city?: string; country?: string };
+  coverImages?: string[];
+  ticketTypes: TicketType[];
+  status: EventStatus;
+  capacity?: number;
+  tags?: string[];
+  ticketStats: { total: number; active: number; used: number };
+  revenue: number;
+  organizerRevenue: number;
+  pazimoCommission: number;
+}
+
+export interface Withdrawal {
+  _id: string;
+  amount: number;
+  currency: Currency;
+  status: "pending" | "approved" | "rejected" | "completed";
+  createdAt: string;
+}
+
+export interface OrganizerDashboardResponse {
+  success: true;
+  data: {
+    events: DashboardEvent[];
+    withdrawals: Withdrawal[];
+    balance: {
+      currency: Currency;
+      totalRevenue: number;
+      organizerRevenue: number;
+      pazimoCommission: number;
+      totalWithdrawn: number;
+      pendingWithdrawals: number;
+      availableBalance: number;
+    };
+    stats: {
+      totalEvents: number;
+      publishedEvents: number;
+      draftEvents: number;
+      completedEvents: number;
+    };
+  };
+}
+
 export interface OrganizerSignUpResponse {
   success: boolean;
   message: string;
