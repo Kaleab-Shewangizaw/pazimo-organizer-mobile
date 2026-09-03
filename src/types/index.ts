@@ -53,6 +53,24 @@ export interface OrganizerOtpVerifyResponse {
   data: { user: User; token: string };
 }
 
+export interface PasswordResetCodeSentResponse {
+  status: "success";
+  channel: OtpChannel;
+  maskedDestination: string;
+  message: string;
+}
+
+export interface PasswordResetCodeVerifiedResponse {
+  status: "success";
+  message: string;
+}
+
+export interface PasswordResetCompleteResponse {
+  status: "success";
+  message: string;
+  data: { user: User; token: string };
+}
+
 export interface ApiErrorBody {
   status?: "error";
   error?: boolean;

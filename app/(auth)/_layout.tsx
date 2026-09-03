@@ -17,6 +17,10 @@ export default function AuthLayout() {
         name="organizer-signup"
         options={{ title: "Create organizer account" }}
       />
+      <Stack.Screen
+        name="forgot-password"
+        options={{ title: "Reset password" }}
+      />
     </Stack>
   );
 }

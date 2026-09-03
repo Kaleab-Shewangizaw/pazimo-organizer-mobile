@@ -106,6 +106,10 @@ function PasswordStep({
           loading={mutation.isPending}
           style={styles.submit}
         />
+
+        <Link href="/forgot-password" style={styles.forgotLink}>
+          Forgot password?
+        </Link>
       </View>
 
       <View style={styles.footer}>
@@ -125,13 +129,14 @@ function PasswordStep({
  * same endpoint the backend's standalone "sign in with a code" path uses.
  */
 function VerifyLoginOtp({
-  context,
+  context: initialContext,
   onBack,
 }: {
   context: OtpContext;
   onBack: () => void;
 }) {
   const signIn = useAuthStore((s) => s.signIn);
+  const [context, setContext] = useState(initialContext);
   const [code, setCode] = useState("");
   const [codeError, setCodeError] = useState<string | null>(null);
 
@@ -148,12 +153,26 @@ function VerifyLoginOtp({
     },
   });
 
+  // Same channel as whatever the code was last sent on — resend keeps SMS
+  // as SMS, or email as email, once switched.
   const resendMutation = useMutation({
     mutationFn: () => organizerSendOtp(context.email, context.channel),
   });
 
+  // Ethiopian SMS delivery to this OTP gateway is known to be unreliable
+  // (see generateAndSendOtp's comment in authController.js) — this lets an
+  // organizer who never got the text fall back to email without starting
+  // over from the password screen.
+  const emailMutation = useMutation({
+    mutationFn: () => organizerSendOtp(context.email, "email"),
+    onSuccess: (res) => {
+      setContext({ email: context.email, channel: res.channel, maskedDestination: res.maskedDestination });
+    },
+  });
+
   const verifyError = verifyMutation.isError ? bannerMessageFor(verifyMutation.error) : null;
   const resendError = resendMutation.isError ? bannerMessageFor(resendMutation.error) : null;
+  const emailError = emailMutation.isError ? bannerMessageFor(emailMutation.error) : null;
 
   return (
     <Screen>
@@ -167,7 +186,8 @@ function VerifyLoginOtp({
       <View style={styles.form}>
         {verifyError ? <Banner kind="error" message={verifyError} /> : null}
         {resendError ? <Banner kind="error" message={resendError} /> : null}
-        {resendMutation.isSuccess ? (
+        {emailError ? <Banner kind="error" message={emailError} /> : null}
+        {(resendMutation.isSuccess || emailMutation.isSuccess) ? (
           <Banner kind="success" message="A new code was sent." />
         ) : null}
 
@@ -187,6 +207,14 @@ function VerifyLoginOtp({
           onPress={() => resendMutation.mutate()}
           loading={resendMutation.isPending}
         />
+        {context.channel !== "email" ? (
+          <Button
+            label="Email me a code instead"
+            variant="secondary"
+            onPress={() => emailMutation.mutate()}
+            loading={emailMutation.isPending}
+          />
+        ) : null}
       </View>
 
       <View style={styles.footer}>
@@ -226,6 +254,13 @@ const styles = StyleSheet.create({
   },
   submit: {
     marginTop: 8,
+  },
+  forgotLink: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
+    marginTop: 4,
   },
   otpWrap: {
     alignItems: "center",

@@ -28,3 +28,19 @@ export const organizerOrgSchema = z.object({
 export type OrganizerOrgValues = z.infer<typeof organizerOrgSchema>;
 
 export const otpSchema = z.string().regex(/^\d{6}$/, "Enter the 6-digit code");
+
+// Matches backend/src/controllers/authController.js's findUserByIdentifier:
+// anything with an "@" is treated as an email, everything else as a phone
+// number.
+export const identifierSchema = z
+  .string()
+  .trim()
+  .min(1, "Enter your email or phone number")
+  .refine(
+    (value) => (value.includes("@") ? z.string().email().safeParse(value).success : phoneRegex.test(value)),
+    "Enter a valid email or Ethiopian phone number",
+  );
+
+// Backend's resetPasswordWithCode requires >= 6 characters — a lower bar
+// than sign-up's 8, so match it exactly rather than reusing that schema.
+export const newPasswordSchema = z.string().min(6, "Password must be at least 6 characters");

@@ -7,6 +7,9 @@ import type {
   OrganizerSignUpInput,
   OrganizerSignUpResponse,
   OtpChannel,
+  PasswordResetCodeSentResponse,
+  PasswordResetCodeVerifiedResponse,
+  PasswordResetCompleteResponse,
   SendOtpResponse,
 } from "@/types";
 
@@ -50,6 +53,46 @@ export function verifyOrganizerOtp(email: string, code: string) {
   return apiRequest<OrganizerOtpVerifyResponse>("/auth/organizer/verify-otp", {
     method: "POST",
     body: { email, code },
+    auth: false,
+  });
+}
+
+/**
+ * POST /api/auth/organizer/forgot-password. `identifier` is an email or
+ * phone number (backend's findUserByIdentifier tells them apart). Same
+ * "account not found" messaging as a failed login, and the same channel
+ * choice as organizerSendOtp — SMS by default, email on request.
+ */
+export function organizerForgotPassword(identifier: string, channel: OtpChannel = "sms") {
+  return apiRequest<PasswordResetCodeSentResponse>("/auth/organizer/forgot-password", {
+    method: "POST",
+    body: { identifier, channel },
+    auth: false,
+  });
+}
+
+/**
+ * POST /api/auth/organizer/verify-reset-code — checks the code without
+ * spending it, so the UI can move from "enter code" to "set new password"
+ * before the code is actually consumed by organizerResetPassword.
+ */
+export function organizerVerifyResetCode(identifier: string, code: string) {
+  return apiRequest<PasswordResetCodeVerifiedResponse>("/auth/organizer/verify-reset-code", {
+    method: "POST",
+    body: { identifier, code },
+    auth: false,
+  });
+}
+
+/**
+ * POST /api/auth/organizer/reset-password — re-checks the code (single use,
+ * cleared on success) and sets the new password. Signs the organizer in
+ * immediately, same as the old email-link reset used to.
+ */
+export function organizerResetPassword(identifier: string, code: string, newPassword: string) {
+  return apiRequest<PasswordResetCompleteResponse>("/auth/organizer/reset-password", {
+    method: "POST",
+    body: { identifier, code, newPassword },
     auth: false,
   });
 }
