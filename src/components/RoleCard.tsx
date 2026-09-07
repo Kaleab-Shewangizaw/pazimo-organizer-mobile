@@ -10,7 +10,7 @@ import { useColors } from "@/lib/useColors";
 interface RoleCardProps {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
-  subtitle: string;
+  subtitle?: string;
   onPress: () => void;
 }
 
@@ -32,7 +32,7 @@ export function RoleCard({ icon, title, subtitle, onPress }: RoleCardProps) {
       </View>
       <View style={styles.textWrap}>
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.subtitle}>{subtitle}</Text>
+        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       </View>
       <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
     </Pressable>
@@ -48,9 +48,9 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.surface,
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 16,
-      paddingVertical: 16,
-      paddingHorizontal: 16,
+      borderRadius: 20,
+      paddingVertical: 18,
+      paddingHorizontal: 18,
     },
     pressed: {
       opacity: 0.7,
@@ -58,7 +58,7 @@ const createStyles = (colors: ThemeColors) =>
     iconWrap: {
       width: 44,
       height: 44,
-      borderRadius: 12,
+      borderRadius: 14,
       backgroundColor: colors.accentSoft,
       alignItems: "center",
       justifyContent: "center",
@@ -73,6 +73,7 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.ink,
     },
     subtitle: {
+      fontFamily: fonts.body,
       fontSize: 13,
       color: colors.textMuted,
     },

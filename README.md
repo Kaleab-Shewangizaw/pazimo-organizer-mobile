@@ -77,21 +77,37 @@ to any of the three.
 
 ## Design system
 
-Pazimo sells tickets, so the app's one signature visual device is a
-perforated "ticket stub" — a dashed tear-line with circular notches cut into
-the card's edge (`src/components/StubDivider.tsx`), used on the dashboard's
-balance card and every event card. Used deliberately in exactly those two
-places, not scattered everywhere.
+Every screen reads colors through `useColors()` (`src/lib/useColors.ts`),
+never a static import — that's what makes the Light/Dark/System toggle (each
+role's Account tab, `src/store/themeStore.ts`) actually work. The palette
+itself (`src/lib/theme.ts`, `lightColors`/`darkColors`) is adapted from a
+design reference the user provided — a Lovable mockup of this exact app —
+converted from its oklch tokens to hex via the real CSS Color 4 matrices,
+not eyeballed.
 
-- **Color** (`src/lib/theme.ts`): warm parchment background (`paper`), navy
-  ink and buttons (`navy`/`navyDeep`, inherited from the existing web app's
-  brand primary), and a museum-label gold (`gold`) reserved for the one
-  figure that matters most on a given screen — the available balance, the
-  welcome screen's primary action. Status colors (success/warning/error) are
-  kept visually distinct from that gold so "accent" and "state" never get
-  confused.
-- **Type**: Manrope (600/700/800) for greetings, section titles, and money/stat
-  figures; the platform system font for body copy, labels, and inputs.
+- **Color**: a warm off-white/near-black-navy pair (not pure white/black) in
+  both directions, with one vivid gold (`accent`) reserved for the figure
+  that matters most on a screen — an available balance, a hero revenue
+  number. Status colors (success/warning/error) stay visually distinct from
+  that gold. One deliberate deviation from the reference: its dark theme's
+  accent token collapses to a neutral gray — this app keeps the gold vivid
+  in dark mode too, since every other token pair there stays purposeful and
+  a gray accent read as an oversight rather than a choice.
+- **Type**: Space Grotesk (500/600/700) for headings, section titles, money/stat
+  figures, and button labels; DM Sans for body copy, labels, and inputs that
+  want to move off the platform system font.
+- **Hero cards** (`src/components/HeroCard.tsx`): the one solid-fill card per
+  screen — always an inversion of the page (dark block on a light page,
+  light block on a dark page) — reserved for the single most important
+  figure. Every other card stays a bordered, page-colored surface.
+- **Progress bars / chips** (`src/components/ProgressBar.tsx`,
+  `Chip.tsx`): thin rounded-track comparisons (ticket-tier sell-through,
+  revenue by event, drink sales) and pill filters (the organizer dashboard's
+  event selector), matching the reference's language.
+- The perforated "ticket stub" tear-line (`src/components/StubDivider.tsx`)
+  is still this app's one extra signature device, kept on event cards
+  specifically (it's an actual ticket, after all) rather than the balance
+  hero, which now uses HeroCard's own divider treatment instead.
 - **Status**: a dot + label, not a filled pill — restrained so gold stays the
   only "loud" color on the page.
 
@@ -317,26 +333,40 @@ role. See "Next steps".
 Ushers are admin-created `User` accounts (role `"usher"`, added to the
 backend 2026-09-06 by a parallel effort — see "Backend limitations" for how
 this was coordinated with this app's own work). There's no usher sign-up;
-an admin creates the account, then grants scan access per event by
-generating a short code the usher redeems.
+an admin creates the account, then grants scan access to one event by
+generating a short code the usher redeems. An usher holds **at most one**
+live grant at a time — redeeming a new code silently replaces whatever grant
+they had before (a server-side behavior change on 2026-09-07;
+`GET /api/ushers/my-events` still returns an array, but it's 0 or 1 items in
+practice) — so the UI treats it as "my current event," not a picker over
+several.
 
-- `app/usher/index.tsx` — "My events": `GET /api/ushers/my-events` lists
-  every event this usher currently has a live grant for (an usher can hold
-  more than one at once). Tapping an event opens its scanner.
+- `app/usher/(tabs)/index.tsx` — the current-event card (or an empty state
+  + "Unlock an event" if there isn't one yet), with a "Switch to a different
+  event" link that re-runs the unlock flow.
 - `app/usher/unlock.tsx` — a 6-character code entry
-  (`POST /api/ushers/unlock-event { code }`) for gaining access to a new
-  event; invalidates the "my events" query on success so the new event
-  shows up immediately.
+  (`POST /api/ushers/unlock-event { code }`); invalidates the "my events"
+  query on success so the new event replaces the old one immediately.
 - `app/usher/scanner/[eventId].tsx` — a live camera QR scanner
-  (`expo-camera`'s `CameraView`, `barcodeTypes: ["qr"]`). Each scanned
-  ticket QR (a bare `ticketId` string, no JSON envelope) is sent to
-  `POST /api/tickets/validate-qr { qrData, scopeEventId }`, where
-  `scopeEventId` is this screen's event — the backend checks the usher's
-  access grant against the ticket's *real* event, never against whatever
-  this screen claims, so an usher can't check in tickets for an event they
-  weren't actually granted. Handles all four backend outcomes distinctly:
-  fresh check-in, already-checked-in (a re-scan), not-enough-uses, and no
-  access to this event.
+  (`expo-camera`'s `CameraView`, `barcodeTypes: ["qr"]`) with a
+  scan → review → confirm flow, not check-in-on-scan:
+  1. Each scanned ticket QR (a bare `ticketId` string, no JSON envelope) is
+     sent to `POST /api/tickets/validate-qr { qrData, scopeEventId }` —
+     confirmed by reading the controller to be **read-only** (it never
+     saves anything). Shows who the ticket belongs to and how many people
+     it admits (`ticketCount`).
+  2. The usher picks how many to admit right now via a stepper (defaults to
+     the full count; useful for a group arriving in parts).
+  3. Confirming calls `PATCH /api/tickets/:ticketId/check-in { count, scopeEventId }`,
+     which is what actually commits the check-in and returns how many
+     admissions remain.
+
+  `scopeEventId` throughout is this screen's event — the backend checks the
+  usher's access grant against the ticket's *real* event, never against
+  whatever this screen claims. A wrong-event mismatch (either endpoint's
+  several different backend wordings for it) is normalized client-side to
+  one message, "Wrong ticket for this event," styled distinctly from a
+  fatal error or an already-checked-in re-scan.
 
 ## Security considerations
 

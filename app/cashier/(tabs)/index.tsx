@@ -6,9 +6,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { getCinemaFinance, getCinemaProfile } from "@/api/cinema";
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
+import { HeroCard } from "@/components/HeroCard";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { StatTile } from "@/components/StatTile";
-import { StubDivider } from "@/components/StubDivider";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
@@ -71,21 +71,11 @@ export default function CashierHomeScreen() {
         <Text style={styles.greeting}>Good to see you, {user?.firstName}</Text>
         <Text style={styles.subtitle}>{cinema.name}</Text>
 
-        <View style={styles.stub}>
-          <Text style={styles.stubEyebrow}>Available balance</Text>
-          <Text style={styles.stubFigure}>{formatMoney(availableBalance, CURRENCY)}</Text>
-
-          <StubDivider background={colors.surface} />
-
-          <View style={styles.stubFooter}>
-            <View>
-              <Text style={styles.stubFooterValue}>
-                {formatMoney(pendingWithdrawals, CURRENCY)}
-              </Text>
-              <Text style={styles.stubFooterLabel}>Pending payout</Text>
-            </View>
-          </View>
-        </View>
+        <HeroCard
+          eyebrow="Available balance"
+          value={formatMoney(availableBalance, CURRENCY)}
+          note={`${formatMoney(pendingWithdrawals, CURRENCY)} pending payout`}
+        />
 
         <Text style={styles.sectionEyebrow}>Box office</Text>
         <View style={styles.statsRow}>
@@ -127,52 +117,11 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.ink,
     },
     subtitle: {
+      fontFamily: fonts.body,
       fontSize: 14,
       color: colors.textMuted,
       marginTop: 2,
       marginBottom: 8,
-    },
-    stub: {
-      backgroundColor: colors.surface,
-      borderRadius: 20,
-      borderWidth: 1,
-      borderColor: colors.border,
-      paddingHorizontal: 20,
-      paddingTop: 22,
-      paddingBottom: 4,
-      marginBottom: 8,
-    },
-    stubEyebrow: {
-      fontSize: 12,
-      fontWeight: "700",
-      letterSpacing: 1.2,
-      textTransform: "uppercase",
-      color: colors.textMuted,
-    },
-    stubFigure: {
-      fontFamily: fonts.extrabold,
-      fontSize: 34,
-      color: colors.accent,
-      marginTop: 6,
-      marginBottom: 18,
-      fontVariant: ["tabular-nums"],
-    },
-    stubFooter: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      paddingTop: 16,
-      paddingBottom: 18,
-    },
-    stubFooterValue: {
-      fontFamily: fonts.semibold,
-      fontSize: 16,
-      color: colors.ink,
-      fontVariant: ["tabular-nums"],
-    },
-    stubFooterLabel: {
-      fontSize: 12,
-      color: colors.textMuted,
-      marginTop: 2,
     },
     sectionEyebrow: {
       fontSize: 12,

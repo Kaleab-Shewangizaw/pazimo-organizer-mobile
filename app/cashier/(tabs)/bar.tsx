@@ -7,9 +7,9 @@ import { getCinemaConcessionSalesSummary, getCinemaConcessions } from "@/api/cin
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
+import { HeroCard } from "@/components/HeroCard";
 import { ListRow } from "@/components/ListRow";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { StatTile } from "@/components/StatTile";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
@@ -63,10 +63,11 @@ export default function CashierBarScreen() {
       <ScrollView contentContainerStyle={styles.listContent}>
         <Text style={styles.screenTitle}>Bar</Text>
 
-        <View style={styles.statsRow}>
-          <StatTile label="Revenue" value={formatMoney(summary.revenue, CURRENCY)} accent />
-          <StatTile label="Units sold" value={String(summary.units)} />
-        </View>
+        <HeroCard
+          eyebrow="Bar takings"
+          value={formatMoney(summary.revenue, CURRENCY)}
+          note={`${summary.units} drinks sold`}
+        />
 
         <Text style={styles.sectionEyebrow}>Concessions catalog</Text>
         {items.length > 0 ? (
@@ -112,10 +113,6 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 22,
       color: colors.ink,
       marginBottom: 4,
-    },
-    statsRow: {
-      flexDirection: "row",
-      gap: 12,
     },
     sectionEyebrow: {
       fontSize: 12,

@@ -14,8 +14,9 @@ import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { EventCard } from "@/components/EventCard";
+import { HeroCard } from "@/components/HeroCard";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { StubDivider } from "@/components/StubDivider";
+import { ProgressBar } from "@/components/ProgressBar";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
@@ -65,6 +66,8 @@ export default function OrganizerHomeScreen() {
   const sortedEvents = [...events].sort(
     (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
   );
+  const topByRevenue = [...events].sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+  const maxRevenue = Math.max(1, ...topByRevenue.map((e) => e.revenue));
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
@@ -82,11 +85,13 @@ export default function OrganizerHomeScreen() {
               <Text style={styles.subtitle}>Here's tonight's tally</Text>
             </View>
 
-            <BalanceStub
-              colors={colors}
-              available={balance.availableBalance}
-              totalRevenue={balance.totalRevenue}
-              pending={balance.pendingWithdrawals}
+            <HeroCard
+              eyebrow="Available balance"
+              value={formatMoney(balance.availableBalance, CURRENCY)}
+              footer={[
+                { label: "Total revenue", value: formatMoney(balance.totalRevenue, CURRENCY) },
+                { label: "Pending payout", value: formatMoney(balance.pendingWithdrawals, CURRENCY) },
+              ]}
             />
 
             <View style={styles.statStrip}>
@@ -96,6 +101,27 @@ export default function OrganizerHomeScreen() {
               <View style={styles.statDivider} />
               <StatStripItem colors={colors} value={stats.draftEvents} label="Draft" />
             </View>
+
+            {topByRevenue.length > 1 ? (
+              <View style={styles.revenueCard}>
+                <Text style={styles.revenueTitle}>Revenue by event</Text>
+                <View style={styles.revenueList}>
+                  {topByRevenue.map((event) => (
+                    <View key={event._id} style={styles.revenueRow}>
+                      <View style={styles.revenueLabelRow}>
+                        <Text style={styles.revenueLabel} numberOfLines={1}>
+                          {event.title}
+                        </Text>
+                        <Text style={styles.revenueValue}>
+                          {formatMoney(event.revenue, CURRENCY)}
+                        </Text>
+                      </View>
+                      <ProgressBar progress={event.revenue / maxRevenue} />
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null}
 
             <Text style={styles.sectionEyebrow}>Your events</Text>
           </View>
@@ -113,43 +139,6 @@ export default function OrganizerHomeScreen() {
         }
       />
     </SafeAreaView>
-  );
-}
-
-function BalanceStub({
-  colors,
-  available,
-  totalRevenue,
-  pending,
-}: {
-  colors: ThemeColors;
-  available: number;
-  totalRevenue: number;
-  pending: number;
-}) {
-  const styles = createStyles(colors);
-  return (
-    <View style={styles.stub}>
-      <Text style={styles.stubEyebrow}>Available balance</Text>
-      <Text style={styles.stubFigure}>{formatMoney(available, CURRENCY)}</Text>
-
-      <StubDivider background={colors.surface} />
-
-      <View style={styles.stubFooter}>
-        <StubFooterItem colors={colors} label="Total revenue" value={formatMoney(totalRevenue, CURRENCY)} />
-        <StubFooterItem colors={colors} label="Pending payout" value={formatMoney(pending, CURRENCY)} />
-      </View>
-    </View>
-  );
-}
-
-function StubFooterItem({ colors, label, value }: { colors: ThemeColors; label: string; value: string }) {
-  const styles = createStyles(colors);
-  return (
-    <View>
-      <Text style={styles.stubFooterValue}>{value}</Text>
-      <Text style={styles.stubFooterLabel}>{label}</Text>
-    </View>
   );
 }
 
@@ -183,49 +172,8 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.ink,
     },
     subtitle: {
+      fontFamily: fonts.body,
       fontSize: 14,
-      color: colors.textMuted,
-      marginTop: 2,
-    },
-
-    stub: {
-      backgroundColor: colors.surface,
-      borderRadius: 20,
-      borderWidth: 1,
-      borderColor: colors.border,
-      paddingHorizontal: 20,
-      paddingTop: 22,
-      paddingBottom: 4,
-    },
-    stubEyebrow: {
-      fontSize: 12,
-      fontWeight: "700",
-      letterSpacing: 1.2,
-      textTransform: "uppercase",
-      color: colors.textMuted,
-    },
-    stubFigure: {
-      fontFamily: fonts.extrabold,
-      fontSize: 34,
-      color: colors.accent,
-      marginTop: 6,
-      marginBottom: 18,
-      fontVariant: ["tabular-nums"],
-    },
-    stubFooter: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      paddingTop: 16,
-      paddingBottom: 18,
-    },
-    stubFooterValue: {
-      fontFamily: fonts.semibold,
-      fontSize: 16,
-      color: colors.ink,
-      fontVariant: ["tabular-nums"],
-    },
-    stubFooterLabel: {
-      fontSize: 12,
       color: colors.textMuted,
       marginTop: 2,
     },
@@ -255,9 +203,47 @@ const createStyles = (colors: ThemeColors) =>
       fontVariant: ["tabular-nums"],
     },
     statLabel: {
+      fontFamily: fonts.body,
       fontSize: 12,
       color: colors.textMuted,
       marginTop: 2,
+    },
+
+    revenueCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 20,
+    },
+    revenueTitle: {
+      fontFamily: fonts.bold,
+      fontSize: 16,
+      color: colors.ink,
+    },
+    revenueList: {
+      marginTop: 14,
+      gap: 14,
+    },
+    revenueRow: {
+      gap: 8,
+    },
+    revenueLabelRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      gap: 8,
+    },
+    revenueLabel: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      color: colors.ink,
+      flexShrink: 1,
+    },
+    revenueValue: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      color: colors.textMuted,
+      fontVariant: ["tabular-nums"],
     },
 
     sectionEyebrow: {

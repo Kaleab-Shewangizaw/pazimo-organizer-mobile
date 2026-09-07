@@ -8,8 +8,9 @@ import {
   type ViewStyle,
 } from "react-native";
 
-import { useColors } from "@/lib/useColors";
+import { fonts } from "@/lib/fonts";
 import type { ThemeColors } from "@/lib/theme";
+import { useColors } from "@/lib/useColors";
 
 interface ButtonProps {
   label: string;
@@ -63,7 +64,7 @@ const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     base: {
       minHeight: 52,
-      borderRadius: 12,
+      borderRadius: 16,
       alignItems: "center",
       justifyContent: "center",
       paddingHorizontal: 20,
@@ -83,13 +84,13 @@ const createStyles = (colors: ThemeColors) =>
       opacity: 0.85,
     },
     primaryText: {
+      fontFamily: fonts.semibold,
       color: colors.buttonPrimaryText,
       fontSize: 16,
-      fontWeight: "600",
     },
     secondaryText: {
+      fontFamily: fonts.semibold,
       color: colors.ink,
       fontSize: 16,
-      fontWeight: "600",
     },
   });

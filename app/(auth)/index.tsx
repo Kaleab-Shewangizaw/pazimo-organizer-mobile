@@ -41,7 +41,6 @@ export default function WelcomeScreen() {
             <RoleCard
               icon="briefcase-outline"
               title="Organizer"
-              subtitle=""
               onPress={() => router.push("/organizer-login")}
             />
           </Animated.View>
@@ -49,7 +48,6 @@ export default function WelcomeScreen() {
             <RoleCard
               icon="qr-code-outline"
               title="Usher"
-              subtitle=""
               onPress={() => router.push("/usher-login")}
             />
           </Animated.View>
@@ -57,7 +55,6 @@ export default function WelcomeScreen() {
             <RoleCard
               icon="storefront-outline"
               title="Cashier"
-              subtitle=""
               onPress={() => router.push("/cashier-login")}
             />
           </Animated.View>
@@ -98,6 +95,7 @@ const createStyles = (colors: ThemeColors) =>
       marginBottom: 14,
     },
     tagline: {
+      fontFamily: fonts.body,
       fontSize: 16,
       color: colors.textMuted,
     },

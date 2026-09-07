@@ -1,22 +1,32 @@
+import { DMSans_400Regular, DMSans_500Medium, DMSans_700Bold } from "@expo-google-fonts/dm-sans";
 import {
-  Manrope_600SemiBold,
-  Manrope_700Bold,
-  Manrope_800ExtraBold,
-} from "@expo-google-fonts/manrope";
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_600SemiBold,
+  SpaceGrotesk_700Bold,
+} from "@expo-google-fonts/space-grotesk";
 
 /**
- * Manrope is used only for display text and figures (greetings, section
- * titles, money/stat numbers) — restraint is the point, so body copy,
- * inputs, and buttons stay on the system font.
+ * Space Grotesk (display) + DM Sans (body) — the pairing from the design
+ * reference. Space Grotesk is used only for headings, section titles, and
+ * money/stat figures, same restraint as this app's previous Manrope-only
+ * system; DM Sans is available for body copy that wants to explicitly move
+ * off the platform system font (buttons, chips, stat notes) without
+ * requiring every existing screen to be swept at once.
  */
 export const fontAssets = {
-  Manrope_600SemiBold,
-  Manrope_700Bold,
-  Manrope_800ExtraBold,
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_600SemiBold,
+  SpaceGrotesk_700Bold,
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_700Bold,
 };
 
 export const fonts = {
-  semibold: "Manrope_600SemiBold",
-  bold: "Manrope_700Bold",
-  extrabold: "Manrope_800ExtraBold",
+  semibold: "SpaceGrotesk_500Medium",
+  bold: "SpaceGrotesk_600SemiBold",
+  extrabold: "SpaceGrotesk_700Bold",
+  body: "DMSans_400Regular",
+  bodyMedium: "DMSans_500Medium",
+  bodyBold: "DMSans_700Bold",
 } as const;

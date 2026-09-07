@@ -7,9 +7,10 @@ import { getBeverageEligibility, getOrganizerBeverageDashboard } from "@/api/bev
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
+import { HeroCard } from "@/components/HeroCard";
 import { ListRow } from "@/components/ListRow";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { StatTile } from "@/components/StatTile";
+import { ProgressBar } from "@/components/ProgressBar";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
@@ -82,39 +83,48 @@ export default function OrganizerBarScreen() {
   }
 
   const { totals, byBeverage, byEvent, recent } = dashboardQuery.data.data;
+  const topUnits = Math.max(1, ...byBeverage.map((d) => d.units));
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <ScrollView contentContainerStyle={styles.listContent}>
         <Text style={styles.screenTitle}>Bar</Text>
 
-        <View style={styles.statsRow}>
-          <StatTile label="Revenue" value={formatMoney(totals.revenue, CURRENCY)} accent />
-          <StatTile label="Units sold" value={String(totals.units)} />
-        </View>
-        <View style={styles.statsRow}>
-          <StatTile label="Orders" value={String(totals.orders)} />
-          <StatTile
-            label="Sell-through"
-            value={totals.sellThrough != null ? `${totals.sellThrough}%` : "—"}
-          />
-        </View>
+        <HeroCard
+          eyebrow="Bar revenue"
+          value={formatMoney(totals.revenue, CURRENCY)}
+          note={`${totals.units} drinks sold`}
+          footer={[
+            { label: "Orders", value: String(totals.orders) },
+            {
+              label: "Sell-through",
+              value: totals.sellThrough != null ? `${totals.sellThrough}%` : "—",
+            },
+          ]}
+        />
 
         {byBeverage.length > 0 ? (
-          <>
-            <Text style={styles.sectionEyebrow}>By drink</Text>
-            <View style={styles.list}>
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <Text style={styles.cardTitle}>Drinks</Text>
+              <Text style={styles.cardHint}>price · sold</Text>
+            </View>
+            <View style={styles.drinksList}>
               {byBeverage.map((drink) => (
-                <ListRow
-                  key={drink._id}
-                  title={drink.name}
-                  subtitle={`${drink.eventCount} event${drink.eventCount === 1 ? "" : "s"}`}
-                  amount={formatMoney(drink.revenue, CURRENCY)}
-                  statusLabel={`${drink.units} sold`}
-                />
+                <View key={drink._id} style={styles.drinkRow}>
+                  <View style={styles.revenueLabelRow}>
+                    <Text style={styles.revenueLabel} numberOfLines={1}>
+                      {drink.name}
+                    </Text>
+                    <Text style={styles.revenueValue}>
+                      {formatMoney(drink.revenue, CURRENCY)} · {drink.units} sold
+                    </Text>
+                  </View>
+                  <ProgressBar progress={drink.units / topUnits} color={colors.accent} />
+                </View>
               ))}
             </View>
-          </>
+          </View>
         ) : null}
 
         {byEvent.length > 0 ? (
@@ -181,9 +191,50 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.ink,
       marginBottom: 4,
     },
-    statsRow: {
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 20,
+    },
+    cardHeaderRow: {
       flexDirection: "row",
-      gap: 12,
+      justifyContent: "space-between",
+      alignItems: "baseline",
+    },
+    cardTitle: {
+      fontFamily: fonts.bold,
+      fontSize: 16,
+      color: colors.ink,
+    },
+    cardHint: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    drinksList: {
+      marginTop: 14,
+      gap: 14,
+    },
+    drinkRow: {
+      gap: 8,
+    },
+    revenueLabelRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      gap: 8,
+    },
+    revenueLabel: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      color: colors.ink,
+      flexShrink: 1,
+    },
+    revenueValue: {
+      fontFamily: fonts.body,
+      fontSize: 13,
+      color: colors.textMuted,
     },
     sectionEyebrow: {
       fontSize: 12,

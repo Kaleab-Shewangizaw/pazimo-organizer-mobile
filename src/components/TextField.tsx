@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
 
+import { fonts } from "@/lib/fonts";
 import type { ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 
@@ -32,24 +33,28 @@ const createStyles = (colors: ThemeColors) =>
       gap: 6,
     },
     label: {
-      fontSize: 14,
-      fontWeight: "600",
-      color: colors.ink,
+      fontFamily: fonts.bodyMedium,
+      fontSize: 12,
+      letterSpacing: 0.4,
+      textTransform: "uppercase",
+      color: colors.textMuted,
     },
     input: {
-      height: 50,
-      borderRadius: 10,
+      height: 54,
+      borderRadius: 16,
       borderWidth: 1.5,
       borderColor: colors.border,
-      paddingHorizontal: 14,
-      fontSize: 16,
+      paddingHorizontal: 16,
+      fontFamily: fonts.body,
+      fontSize: 15,
       color: colors.ink,
-      backgroundColor: colors.surfaceAlt,
+      backgroundColor: colors.surface,
     },
     inputError: {
       borderColor: colors.error,
     },
     error: {
+      fontFamily: fonts.body,
       fontSize: 13,
       color: colors.error,
     },
