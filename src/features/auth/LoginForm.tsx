@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { login, organizerSendOtp, verifyOrganizerOtp } from "@/api/auth";
@@ -12,7 +12,8 @@ import { TextField } from "@/components/TextField";
 import { loginSchema, otpSchema } from "@/features/auth/schemas";
 import { bannerMessageFor, VALIDATION_ERROR_MESSAGE } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
-import { colors } from "@/lib/theme";
+import type { ThemeColors } from "@/lib/theme";
+import { useColors } from "@/lib/useColors";
 import { useAuthStore } from "@/store/authStore";
 import type { OtpChannel } from "@/types";
 
@@ -28,11 +29,11 @@ interface LoginFormProps {
 }
 
 /**
- * Shared by organizer-login.tsx and usher-login.tsx — both are plain
- * email+password against the same POST /api/auth/login, and the backend
- * decides both the account's real role (Stack.Protected routes on that,
- * not on which screen was used) and whether a second factor is required
- * (organizer accounts only, today). Only the copy differs per screen.
+ * Shared by every role's *-login.tsx screen — all are plain email+password
+ * against the same POST /api/auth/login, and the backend decides both the
+ * account's real role (Stack.Protected routes on that, not on which screen
+ * was used) and whether a second factor is required (organizer accounts
+ * only, today). Only the copy differs per screen.
  */
 export function LoginForm({ title, subtitle }: LoginFormProps) {
   const [otpContext, setOtpContext] = useState<OtpContext | null>(null);
@@ -49,6 +50,8 @@ function PasswordStep({
   subtitle,
   onRequiresOtp,
 }: LoginFormProps & { onRequiresOtp: (ctx: OtpContext) => void }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const signIn = useAuthStore((s) => s.signIn);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -127,8 +130,8 @@ function PasswordStep({
  * (backend/src/controllers/authController.js login(), added 2026-09-04).
  * This step completes that with POST /api/auth/organizer/verify-otp — the
  * same endpoint the backend's standalone "sign in with a code" path uses.
- * An usher account never reaches this screen — login() only branches into
- * requiresOtp for role === "organizer".
+ * Usher/cashier accounts never reach this screen — login() only branches
+ * into requiresOtp for role === "organizer".
  */
 function VerifyLoginOtp({
   context: initialContext,
@@ -137,6 +140,8 @@ function VerifyLoginOtp({
   context: OtpContext;
   onBack: () => void;
 }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const signIn = useAuthStore((s) => s.signIn);
   const [context, setContext] = useState(initialContext);
   const [code, setCode] = useState("");
@@ -228,51 +233,52 @@ function VerifyLoginOtp({
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    alignItems: "center",
-    gap: 6,
-    marginTop: 24,
-    marginBottom: 32,
-  },
-  title: {
-    fontFamily: fonts.bold,
-    fontSize: 24,
-    color: colors.ink,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: colors.textMuted,
-    textAlign: "center",
-  },
-  form: {
-    gap: 16,
-  },
-  submit: {
-    marginTop: 8,
-  },
-  forgotLink: {
-    color: colors.navy,
-    fontSize: 14,
-    fontWeight: "600",
-    textAlign: "center",
-    marginTop: 4,
-  },
-  otpWrap: {
-    alignItems: "center",
-    gap: 8,
-  },
-  otpError: {
-    fontSize: 13,
-    color: colors.error,
-  },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 32,
-  },
-  footerText: {
-    color: colors.textMuted,
-    fontSize: 15,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    header: {
+      alignItems: "center",
+      gap: 6,
+      marginTop: 24,
+      marginBottom: 32,
+    },
+    title: {
+      fontFamily: fonts.bold,
+      fontSize: 24,
+      color: colors.ink,
+    },
+    subtitle: {
+      fontSize: 15,
+      color: colors.textMuted,
+      textAlign: "center",
+    },
+    form: {
+      gap: 16,
+    },
+    submit: {
+      marginTop: 8,
+    },
+    forgotLink: {
+      color: colors.ink,
+      fontSize: 14,
+      fontWeight: "600",
+      textAlign: "center",
+      marginTop: 4,
+    },
+    otpWrap: {
+      alignItems: "center",
+      gap: 8,
+    },
+    otpError: {
+      fontSize: 13,
+      color: colors.error,
+    },
+    footer: {
+      flexDirection: "row",
+      justifyContent: "center",
+      marginTop: 32,
+    },
+    footerText: {
+      color: colors.textMuted,
+      fontSize: 15,
+    },
+  });

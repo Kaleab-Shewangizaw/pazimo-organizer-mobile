@@ -1,26 +1,72 @@
 /**
- * Design direction: "ticket stub" — Pazimo sells tickets, so the one
- * signature device in this app (the balance card, event cards) borrows the
- * perforated-stub shape of a physical ticket. See src/components/StubDivider.
- * Navy is inherited from the existing web app's brand primary
- * (organzier-pazimo/app/globals.css); gold is re-tuned from that same page's
- * accent into something closer to foil/museum-label gold, since flat
- * Tailwind-amber read as a status color once used site-wide.
+ * Two deliberate directions, not a generic "invert the grays" dark mode:
+ *
+ * - "Ledger" (light) — near-white, near-black ink, one warm brass accent
+ *   reserved for the figure that matters most on a screen (an available
+ *   balance, a hero stat). Hairline borders instead of boxed shadows.
+ * - "After Hours" (dark) — near-black, warm off-white ink, the same accent
+ *   pushed brighter so it reads like a marquee bulb against the dark.
+ *
+ * Every screen reads colors via `useColors()` (or `useThemeMode()` for the
+ * mode itself), never a static import — that's what lets a screen actually
+ * re-render when the mode changes. See `ThemeProvider` below.
  */
-export const colors = {
-  ink: "#16232F", // primary text — soft near-black, not pure black
-  paper: "#F7F3EC", // page background — warm parchment, not sterile white
+export interface ThemeColors {
+  background: string;
+  surface: string;
+  surfaceAlt: string;
+  border: string;
+  ink: string;
+  textMuted: string;
+  accent: string;
+  accentSoft: string;
+  buttonPrimaryBg: string;
+  buttonPrimaryText: string;
+  success: string;
+  successBg: string;
+  error: string;
+  errorBg: string;
+  warning: string;
+  warningBg: string;
+  overlay: string;
+}
+
+export const lightColors: ThemeColors = {
+  background: "#FFFFFF",
   surface: "#FFFFFF",
-  navy: "#1B3555", // brand primary — buttons, primary actions
-  navyDeep: "#0F2038", // pressed state, dark fills
-  gold: "#B98A2E", // accent — used only on the stub cards' hero figures
-  goldMuted: "#EFE3C8", // gold-tinted surface (chips, subtle highlights)
-  border: "#E7E1D3",
-  textMuted: "#6B6459",
+  surfaceAlt: "#F4F4F5",
+  border: "#E7E7E9",
+  ink: "#111214",
+  textMuted: "#6E7076",
+  accent: "#B7791F",
+  accentSoft: "#F7ECD9",
+  buttonPrimaryBg: "#111214",
+  buttonPrimaryText: "#FFFFFF",
   success: "#1E8E5A",
   successBg: "#E7F6EF",
   error: "#C4322F",
   errorBg: "#FBEAEA",
   warning: "#C2660B",
   warningBg: "#FBEEDD",
-} as const;
+  overlay: "rgba(15, 15, 17, 0.5)",
+};
+
+export const darkColors: ThemeColors = {
+  background: "#0A0A0B",
+  surface: "#17181A",
+  surfaceAlt: "#1F2023",
+  border: "#2A2B2E",
+  ink: "#F2F1EE",
+  textMuted: "#9A9A9E",
+  accent: "#F5B942",
+  accentSoft: "rgba(245, 185, 66, 0.14)",
+  buttonPrimaryBg: "#F2F1EE",
+  buttonPrimaryText: "#0A0A0B",
+  success: "#34D399",
+  successBg: "rgba(52, 211, 153, 0.14)",
+  error: "#F87171",
+  errorBg: "rgba(248, 113, 113, 0.14)",
+  warning: "#FBBF24",
+  warningBg: "rgba(251, 191, 36, 0.14)",
+  overlay: "rgba(0, 0, 0, 0.6)",
+};

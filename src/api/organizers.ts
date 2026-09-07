@@ -1,5 +1,5 @@
 import { apiRequest } from "@/api/client";
-import type { Currency, OrganizerDashboardResponse } from "@/types";
+import type { Currency, OrganizerDashboardResponse, TopCustomersResponse } from "@/types";
 
 /**
  * Backend: GET /api/organizers/:organizerId/dashboard
@@ -11,5 +11,17 @@ import type { Currency, OrganizerDashboardResponse } from "@/types";
 export function getOrganizerDashboard(organizerId: string, currency: Currency = "ETB") {
   return apiRequest<OrganizerDashboardResponse>(
     `/organizers/${organizerId}/dashboard?currency=${currency}`,
+  );
+}
+
+/**
+ * Backend: GET /api/organizers/:organizerId/top-customers
+ * (backend/src/controllers/organizerController.js getTopCustomers). Ranks by
+ * ticket count across every event this organizer runs — used by the
+ * Tickets tab's "Top customers" section.
+ */
+export function getTopCustomers(organizerId: string, limit = 10) {
+  return apiRequest<TopCustomersResponse>(
+    `/organizers/${organizerId}/top-customers?limit=${limit}`,
   );
 }

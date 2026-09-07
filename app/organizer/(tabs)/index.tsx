@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   FlatList,
   RefreshControl,
@@ -19,15 +19,17 @@ import { StubDivider } from "@/components/StubDivider";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
-import { colors } from "@/lib/theme";
+import type { ThemeColors } from "@/lib/theme";
+import { useColors } from "@/lib/useColors";
 import { useAuthStore } from "@/store/authStore";
 import type { DashboardEvent } from "@/types";
 
 const CURRENCY = "ETB" as const;
 
 export default function OrganizerHomeScreen() {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const user = useAuthStore((s) => s.user);
-  const signOut = useAuthStore((s) => s.signOut);
   const organizerId = user?._id;
   const [refreshing, setRefreshing] = useState(false);
 
@@ -71,7 +73,7 @@ export default function OrganizerHomeScreen() {
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.navy} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
         }
         ListHeaderComponent={
           <View style={styles.header}>
@@ -81,17 +83,18 @@ export default function OrganizerHomeScreen() {
             </View>
 
             <BalanceStub
+              colors={colors}
               available={balance.availableBalance}
               totalRevenue={balance.totalRevenue}
               pending={balance.pendingWithdrawals}
             />
 
             <View style={styles.statStrip}>
-              <StatStripItem value={stats.totalEvents} label="Events" />
+              <StatStripItem colors={colors} value={stats.totalEvents} label="Events" />
               <View style={styles.statDivider} />
-              <StatStripItem value={stats.publishedEvents} label="Published" />
+              <StatStripItem colors={colors} value={stats.publishedEvents} label="Published" />
               <View style={styles.statDivider} />
-              <StatStripItem value={stats.draftEvents} label="Draft" />
+              <StatStripItem colors={colors} value={stats.draftEvents} label="Draft" />
             </View>
 
             <Text style={styles.sectionEyebrow}>Your events</Text>
@@ -108,28 +111,23 @@ export default function OrganizerHomeScreen() {
             body="Events you create will show up here with live ticket and revenue stats."
           />
         }
-        ListFooterComponent={
-          <Button
-            label="Sign out"
-            variant="secondary"
-            onPress={signOut}
-            style={styles.signOut}
-          />
-        }
       />
     </SafeAreaView>
   );
 }
 
 function BalanceStub({
+  colors,
   available,
   totalRevenue,
   pending,
 }: {
+  colors: ThemeColors;
   available: number;
   totalRevenue: number;
   pending: number;
 }) {
+  const styles = createStyles(colors);
   return (
     <View style={styles.stub}>
       <Text style={styles.stubEyebrow}>Available balance</Text>
@@ -138,14 +136,15 @@ function BalanceStub({
       <StubDivider background={colors.surface} />
 
       <View style={styles.stubFooter}>
-        <StubFooterItem label="Total revenue" value={formatMoney(totalRevenue, CURRENCY)} />
-        <StubFooterItem label="Pending payout" value={formatMoney(pending, CURRENCY)} />
+        <StubFooterItem colors={colors} label="Total revenue" value={formatMoney(totalRevenue, CURRENCY)} />
+        <StubFooterItem colors={colors} label="Pending payout" value={formatMoney(pending, CURRENCY)} />
       </View>
     </View>
   );
 }
 
-function StubFooterItem({ label, value }: { label: string; value: string }) {
+function StubFooterItem({ colors, label, value }: { colors: ThemeColors; label: string; value: string }) {
+  const styles = createStyles(colors);
   return (
     <View>
       <Text style={styles.stubFooterValue}>{value}</Text>
@@ -154,7 +153,8 @@ function StubFooterItem({ label, value }: { label: string; value: string }) {
   );
 }
 
-function StatStripItem({ value, label }: { value: number; label: string }) {
+function StatStripItem({ colors, value, label }: { colors: ThemeColors; value: number; label: string }) {
+  const styles = createStyles(colors);
   return (
     <View style={styles.statItem}>
       <Text style={styles.statValue}>{value}</Text>
@@ -163,117 +163,118 @@ function StatStripItem({ value, label }: { value: number; label: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.paper,
-  },
-  listContent: {
-    padding: 20,
-    gap: 12,
-  },
-  header: {
-    gap: 20,
-    marginBottom: 4,
-  },
-  greeting: {
-    fontFamily: fonts.bold,
-    fontSize: 21,
-    color: colors.ink,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    listContent: {
+      padding: 20,
+      gap: 12,
+    },
+    header: {
+      gap: 20,
+      marginBottom: 4,
+    },
+    greeting: {
+      fontFamily: fonts.bold,
+      fontSize: 21,
+      color: colors.ink,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
 
-  stub: {
-    backgroundColor: colors.surface,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 20,
-    paddingTop: 22,
-    paddingBottom: 4,
-  },
-  stubEyebrow: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    color: colors.textMuted,
-  },
-  stubFigure: {
-    fontFamily: fonts.extrabold,
-    fontSize: 34,
-    color: colors.gold,
-    marginTop: 6,
-    marginBottom: 18,
-  },
-  stubFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingTop: 16,
-    paddingBottom: 18,
-  },
-  stubFooterValue: {
-    fontFamily: fonts.semibold,
-    fontSize: 16,
-    color: colors.ink,
-  },
-  stubFooterLabel: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
+    stub: {
+      backgroundColor: colors.surface,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 20,
+      paddingTop: 22,
+      paddingBottom: 4,
+    },
+    stubEyebrow: {
+      fontSize: 12,
+      fontWeight: "700",
+      letterSpacing: 1.2,
+      textTransform: "uppercase",
+      color: colors.textMuted,
+    },
+    stubFigure: {
+      fontFamily: fonts.extrabold,
+      fontSize: 34,
+      color: colors.accent,
+      marginTop: 6,
+      marginBottom: 18,
+      fontVariant: ["tabular-nums"],
+    },
+    stubFooter: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      paddingTop: 16,
+      paddingBottom: 18,
+    },
+    stubFooterValue: {
+      fontFamily: fonts.semibold,
+      fontSize: 16,
+      color: colors.ink,
+      fontVariant: ["tabular-nums"],
+    },
+    stubFooterLabel: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
 
-  statStrip: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: 14,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: "center",
-  },
-  statDivider: {
-    width: 1,
-    alignSelf: "stretch",
-    backgroundColor: colors.border,
-  },
-  statValue: {
-    fontFamily: fonts.bold,
-    fontSize: 20,
-    color: colors.ink,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
+    statStrip: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingVertical: 14,
+    },
+    statItem: {
+      flex: 1,
+      alignItems: "center",
+    },
+    statDivider: {
+      width: 1,
+      alignSelf: "stretch",
+      backgroundColor: colors.border,
+    },
+    statValue: {
+      fontFamily: fonts.bold,
+      fontSize: 20,
+      color: colors.ink,
+      fontVariant: ["tabular-nums"],
+    },
+    statLabel: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
 
-  sectionEyebrow: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    color: colors.textMuted,
-    marginTop: 4,
-  },
-  eventCardWrap: {
-    marginBottom: 14,
-  },
-  signOut: {
-    marginTop: 8,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 20,
-    gap: 16,
-  },
-});
+    sectionEyebrow: {
+      fontSize: 12,
+      fontWeight: "700",
+      letterSpacing: 1.2,
+      textTransform: "uppercase",
+      color: colors.textMuted,
+      marginTop: 4,
+    },
+    eventCardWrap: {
+      marginBottom: 14,
+    },
+    errorContainer: {
+      flex: 1,
+      justifyContent: "center",
+      padding: 20,
+      gap: 16,
+    },
+  });

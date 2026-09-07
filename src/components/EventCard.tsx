@@ -1,10 +1,12 @@
+import { useMemo } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { StatusBadge } from "@/components/StatusBadge";
 import { StubDivider } from "@/components/StubDivider";
 import { fonts } from "@/lib/fonts";
 import { formatEventDateRange, formatMoney } from "@/lib/format";
-import { colors } from "@/lib/theme";
+import type { ThemeColors } from "@/lib/theme";
+import { useColors } from "@/lib/useColors";
 import type { Currency, DashboardEvent } from "@/types";
 
 interface EventCardProps {
@@ -14,6 +16,8 @@ interface EventCardProps {
 }
 
 export function EventCard({ event, currency, onPress }: EventCardProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const cover = event.coverImages?.[0];
 
   return (
@@ -45,86 +49,76 @@ export function EventCard({ event, currency, onPress }: EventCardProps) {
       <StubDivider background={colors.surface} />
 
       <View style={styles.metricsRow}>
-        <Metric label="Sold" value={String(event.ticketStats.total)} />
-        <Metric label="Checked in" value={String(event.ticketStats.used)} />
-        <Metric label="Revenue" value={formatMoney(event.revenue, currency)} />
+        <Metric label="Sold" value={String(event.ticketStats.total)} colors={colors} />
+        <Metric label="Checked in" value={String(event.ticketStats.used)} colors={colors} />
+        <Metric label="Revenue" value={formatMoney(event.revenue, currency)} colors={colors} />
       </View>
     </Pressable>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({ label, value, colors }: { label: string; value: string; colors: ThemeColors }) {
   return (
-    <View style={styles.metric}>
-      <Text style={styles.metricValue}>{value}</Text>
-      <Text style={styles.metricLabel}>{label}</Text>
+    <View style={{ alignItems: "flex-start" }}>
+      <Text style={{ fontFamily: fonts.semibold, fontSize: 15, color: colors.ink, fontVariant: ["tabular-nums"] }}>
+        {value}
+      </Text>
+      <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 1 }}>{label}</Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: "hidden",
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-  cover: {
-    width: "100%",
-    height: 108,
-  },
-  coverFallback: {
-    backgroundColor: colors.navyDeep,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  coverInitial: {
-    fontFamily: fonts.extrabold,
-    fontSize: 32,
-    color: colors.goldMuted,
-  },
-  top: {
-    padding: 16,
-    paddingBottom: 14,
-    gap: 6,
-  },
-  titleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 8,
-  },
-  title: {
-    fontFamily: fonts.bold,
-    fontSize: 16,
-    color: colors.ink,
-    flexShrink: 1,
-  },
-  date: {
-    fontSize: 13,
-    color: colors.textMuted,
-  },
-  metricsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 16,
-    paddingTop: 14,
-  },
-  metric: {
-    alignItems: "flex-start",
-  },
-  metricValue: {
-    fontFamily: fonts.semibold,
-    fontSize: 15,
-    color: colors.ink,
-  },
-  metricLabel: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 1,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      overflow: "hidden",
+    },
+    pressed: {
+      opacity: 0.85,
+    },
+    cover: {
+      width: "100%",
+      height: 108,
+    },
+    coverFallback: {
+      backgroundColor: colors.surfaceAlt,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    coverInitial: {
+      fontFamily: fonts.extrabold,
+      fontSize: 32,
+      color: colors.textMuted,
+    },
+    top: {
+      padding: 16,
+      paddingBottom: 14,
+      gap: 6,
+    },
+    titleRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: 8,
+    },
+    title: {
+      fontFamily: fonts.bold,
+      fontSize: 16,
+      color: colors.ink,
+      flexShrink: 1,
+    },
+    date: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    metricsRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      padding: 16,
+      paddingTop: 14,
+    },
+  });

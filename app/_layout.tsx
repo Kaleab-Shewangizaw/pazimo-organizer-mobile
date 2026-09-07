@@ -1,38 +1,56 @@
 import { useFonts } from "@expo-google-fonts/manrope";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { fontAssets } from "@/lib/fonts";
 import { queryClient } from "@/lib/queryClient";
+import { useResolvedScheme } from "@/lib/useColors";
 import { useAuthStore } from "@/store/authStore";
+
+// Held open until fonts are loaded and the session bootstrap (see
+// authStore.bootstrap) resolves, so the native splash (white/near-black,
+// following system appearance — see app.json's expo-splash-screen plugin)
+// never drops to a blank frame before the first real screen is ready to draw.
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const status = useAuthStore((s) => s.status);
-  const role = useAuthStore((s) => s.user?.role) as string | undefined;
+  const role = useAuthStore((s) => s.user?.role);
   const bootstrap = useAuthStore((s) => s.bootstrap);
   const [fontsLoaded] = useFonts(fontAssets);
+  const scheme = useResolvedScheme();
 
   useEffect(() => {
     bootstrap();
   }, [bootstrap]);
 
-  if (status === "checking" || !fontsLoaded) {
+  const isReady = status !== "checking" && fontsLoaded;
+
+  useEffect(() => {
+    if (isReady) {
+      SplashScreen.hideAsync();
+    }
+  }, [isReady]);
+
+  if (!isReady) {
     return <LoadingScreen />;
   }
 
   const isOrganizer = status === "signedIn" && role === "organizer";
-  // "usher" is not a role the backend issues today — see README
-  // "Backend limitations". This branch stays wired so the moment the
-  // backend adds it, the app routes there with no further changes.
+  const isCashier = status === "signedIn" && role === "cinema";
   const isUsher = status === "signedIn" && role === "usher";
-  const isUnsupportedRole = status === "signedIn" && !isOrganizer && !isUsher;
+  const isUnsupportedRole =
+    status === "signedIn" && !isOrganizer && !isCashier && !isUsher;
 
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
+        <StatusBar style={scheme === "dark" ? "light" : "dark"} />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Protected guard={status === "signedOut"}>
             <Stack.Screen name="(auth)" />
@@ -40,6 +58,10 @@ export default function RootLayout() {
 
           <Stack.Protected guard={isOrganizer}>
             <Stack.Screen name="organizer" />
+          </Stack.Protected>
+
+          <Stack.Protected guard={isCashier}>
+            <Stack.Screen name="cashier" />
           </Stack.Protected>
 
           <Stack.Protected guard={isUsher}>

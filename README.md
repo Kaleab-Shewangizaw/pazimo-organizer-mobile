@@ -4,49 +4,73 @@ A new, independent React Native app that replaces Pazimo's existing organizer
 mobile app. It talks to the real Pazimo backend (`../pazimo/backend`) — there
 is no mock API and no separate backend in this repo.
 
-**Status:** authentication is complete — separate organizer/usher entry
-points, the backend's mandatory organizer 2FA (login → OTP → token), and a
-full forgot-password flow. The organizer home screen shows real dashboard
-data (balance, per-event ticket/revenue cards) from the backend, designed
-around a "ticket stub" visual language. Event detail, ticket sales
-drill-down, and the scanner are not built yet — see "Next steps" below.
+**Status:** three roles are fully wired end to end — **organizer**, **usher**,
+and **cashier** (the app's name for the backend's `cinema` role) all sign in
+for real and land on a real tab-based experience: a Dashboard, a Tickets
+tab, and a Bar tab (organizer/cashier), or a My Events → unlock-event-code →
+camera QR scanner flow (usher). A branded, animated sign-in screen replaces
+the old two-button welcome screen, and the app opens with a native splash
+that hands off to that screen's own entrance animation. Event detail and a
+per-event ticket sales drill-down (tapping into one event from the
+dashboard) are not built yet — see "Next steps" below.
 
 ## Roles
 
-- **Organizer** — manages their own events, tickets and (eventually) the
-  scanner. Full access is gated behind the backend's own approval flow: a
-  newly self-registered organizer is created `isActive: false` and cannot log
-  in until an admin approves the registration. There is currently no linked
-  path to *create* an organizer account from this app (see below) — sign-up
-  still exists at `app/(auth)/organizer-signup.tsx` but isn't reachable from
-  the UI right now.
-- **Usher** — intended to be a stripped-down, scanner-only mode for door
-  staff assigned to one event. **The Pazimo backend does not have this role
-  today** (see "Backend limitations") — work on adding it is planned next.
-  The navigation shell for it exists (`app/usher/`, `app/(auth)/usher-login.tsx`)
-  so wiring it up later doesn't require restructuring the app, but no usher
-  account can actually exist or sign in yet.
+- **Organizer** — dashboard (balance, per-event ticket/revenue cards),
+  Tickets tab (every ticket sold across their events, plus a top-customers
+  list), and a Bar tab (drinks sold, gated behind the backend's own
+  beverage-eligibility flag — an admin has to turn it on per organizer).
+  Full access is gated behind the backend's own approval flow: a newly
+  self-registered organizer is created `isActive: false` and cannot log in
+  until an admin approves the registration. There is currently no linked
+  path to *create* an organizer account from this app (see below) —
+  sign-up still exists at `app/(auth)/organizer-signup.tsx` but isn't
+  reachable from the UI right now.
+- **Usher** — scanner-only mode for door staff. Ushers are admin-created
+  accounts (no self sign-up) that gain scan access to one or more events by
+  redeeming a short code an admin/organizer generated for that event
+  (`app/usher/unlock.tsx` → `POST /api/ushers/unlock-event`). `app/usher/index.tsx`
+  lists every event the usher currently has access to
+  (`GET /api/ushers/my-events`); tapping one opens a live camera QR scanner
+  (`app/usher/scanner/[eventId].tsx`, `expo-camera`'s `CameraView`) that
+  validates each scanned ticket against that specific event
+  (`POST /api/tickets/validate-qr`). This role didn't exist on the backend
+  until 2026-09-06 — see "Backend limitations" below for how that work was
+  coordinated.
+- **Cashier** — the cinema box office + concessions counter. Maps directly
+  onto the backend's `cinema` role, which already had a complete API surface
+  before this app existed (`/api/cinemas/me/*`): a combined + per-stream
+  (tickets vs. beverages) balance on the Dashboard tab, a box-office ticket
+  sales list on the Tickets tab, and a concessions catalog + sales summary
+  on the Bar tab.
 
-The welcome screen (`app/(auth)/index.tsx`) just picks which login *copy*
-to show — "Sign in as Organizer" vs "Sign in as Usher" — both go through the
-exact same `POST /api/auth/login`. Role is always read from the backend
-response, never chosen in the UI: an organizer using the usher screen (or
-vice versa) still lands wherever their real role routes them. An
-authenticated user whose role is neither `organizer` nor `usher` (e.g.
-`customer`, `venue`, `cinema`) lands on a dedicated "account not supported"
-screen instead of silently getting organizer access.
+The sign-in screen (`app/(auth)/index.tsx`) just picks which login copy/screen
+to show — Organizer, Usher, or Cashier — all three go through the exact same
+`POST /api/auth/login`. Role is always read from the backend response, never
+chosen in the UI: signing in on the wrong role's screen still lands wherever
+the account's real role routes it. An authenticated user whose role is none
+of `organizer`/`usher`/`cinema` (e.g. `customer`, `venue`) lands on a
+dedicated "account not supported" screen instead of silently getting access
+to any of the three.
 
 ## Tech stack
 
 - React Native + Expo (SDK 57), TypeScript, Expo Router (`Stack.Protected`
-  role-based route guards)
+  role-based route guards; classic `Tabs` — not the `unstable-native-tabs`
+  variant — for each role's Dashboard/Tickets/Bar tab bar)
 - Zustand for auth/session state
-- TanStack Query for server-state (mutations today; queries once the
-  dashboard lands)
+- TanStack Query for server-state — `useQuery` for dashboards, `useInfiniteQuery`
+  for the paginated Tickets tabs, mutations for sign-in/unlock-event/scan
 - Zod for form validation
 - Expo SecureStore for the auth token (never AsyncStorage)
 - Plain `fetch` behind a single API client — no HTTP library added just for
   convenience
+- `expo-camera`'s `CameraView` for the usher QR scanner
+- `expo-splash-screen` (native splash) + `react-native-reanimated`'s
+  built-in entrance presets (the sign-in screen's own "logo take-over" on
+  mount) + `expo-linear-gradient` (sign-in background) + `expo-haptics`
+  (light tap feedback on the role picker) + `@expo/vector-icons` (tab bar
+  and role icons)
 - `@expo-google-fonts/manrope` — the one display typeface, used only for
   headings and figures (see "Design system" below); everything else stays
   on the system font
@@ -75,27 +99,44 @@ places, not scattered everywhere.
 
 ```
 app/
-  _layout.tsx              # role-based route guards (Stack.Protected), font loading
+  _layout.tsx              # role-based route guards (Stack.Protected), splash-screen
+                            #   hand-off, font loading
   (auth)/
-    index.tsx               # welcome screen — "Sign in as Organizer" / "Sign in as Usher"
+    index.tsx               # sign-in — animated role picker: Organizer / Usher / Cashier
     organizer-login.tsx      # thin wrapper around LoginForm
     usher-login.tsx           # thin wrapper around LoginForm
-    forgot-password.tsx       # 3-step reset, shared by both roles
+    cashier-login.tsx          # thin wrapper around LoginForm
+    forgot-password.tsx       # 3-step reset, shared by every role
     organizer-signup.tsx      # multi-step organizer sign-up + phone OTP (not linked anywhere today)
   organizer/
-    index.tsx                # dashboard — balance stub, event list
+    (tabs)/
+      index.tsx                # Dashboard — balance stub, event list
+      tickets.tsx                # Tickets — sold tickets + top customers
+      bar.tsx                     # Bar — drinks sold, gated on beverage eligibility
+  cashier/
+    (tabs)/
+      index.tsx                # Dashboard — combined + per-stream (tickets/beverages) balance
+      tickets.tsx                # Tickets — box-office sales
+      bar.tsx                     # Bar — concessions catalog + sales
   usher/
-    index.tsx                # placeholder — backend has no usher role yet
+    index.tsx                # My Events — every event this usher can scan for
+    unlock.tsx                 # redeem a 6-character event code
+    scanner/[eventId].tsx       # camera QR scanner, scoped to one event
   unsupported-role.tsx       # any other authenticated role lands here
 
 src/
   api/        client.ts (fetch wrapper, error normalization, 401 handling)
               auth.ts (login, getCurrentUser, organizer OTP send/verify,
               forgot/verify/reset password, sendOtp, organizerSignUp)
-              organizers.ts (getOrganizerDashboard)
-  components/ shared UI: Button, TextField, OtpInput, Banner, Screen,
-              StubDivider, StatusBadge, EventCard, EmptyState, ...
-  features/auth/  LoginForm.tsx (shared by organizer-login/usher-login), schemas.ts
+              organizers.ts (getOrganizerDashboard, getTopCustomers)
+              tickets.ts (getOrganizerTickets, validateTicketQr)
+              beverages.ts (getBeverageEligibility, getOrganizerBeverageDashboard)
+              cinema.ts (cashier's /api/cinemas/me/* calls)
+              ushers.ts (getMyUsherEvents, unlockUsherEvent)
+  components/ shared UI: Button, TextField, OtpInput, CodeInput, Banner, Screen,
+              StubDivider, StatusBadge, EventCard, ListRow, StatTile, RoleCard,
+              EmptyState, ...
+  features/auth/  LoginForm.tsx (shared by every role's *-login.tsx screen), schemas.ts
   lib/        config.ts, theme.ts, fonts.ts, secureStorage.ts, queryClient.ts,
               errors.ts (bannerMessageFor — always shows *something* for an
               unexpected error), format.ts (currency/date formatting)
@@ -152,22 +193,22 @@ build profile — never commit it.
 ## Authentication architecture
 
 ```
-Welcome screen — "Sign in as Organizer" / "Sign in as Usher" (copy only)
-  → organizer-login.tsx / usher-login.tsx (both render the same LoginForm)
+Sign-in screen — Organizer / Usher / Cashier (copy only, animated role picker)
+  → organizer-login.tsx / usher-login.tsx / cashier-login.tsx (all render the same LoginForm)
   → POST /api/auth/login
   → organizer accounts: 200 { requiresOtp: true, data: { email, channel, maskedDestination } } — no token yet
       → POST /api/auth/organizer/verify-otp { email, code } → token
-  → any other role: 200 { data: { user, token } } directly
+  → any other role (usher, cinema/"cashier", venue, customer): 200 { data: { user, token } } directly
   → token stored in Expo SecureStore
   → GET /api/auth/me to resolve the authoritative role (session restore only —
     login/verify-otp already return the user, so they skip this call)
-  → Stack.Protected routes to organizer / usher / unsupported-role
+  → Stack.Protected routes to organizer / cashier / usher / unsupported-role
 ```
 
-`src/features/auth/LoginForm.tsx` is the one real implementation behind both
-`organizer-login.tsx` and `usher-login.tsx` — the backend decides the actual
-role and whether 2FA applies (organizer accounts only, today), so the two
-screens only need to differ in title/subtitle copy, not logic. Every
+`src/features/auth/LoginForm.tsx` is the one real implementation behind
+every role's `*-login.tsx` screen — the backend decides the actual role and
+whether 2FA applies (organizer accounts only, today), so each screen only
+needs to differ in title/subtitle copy, not logic. Every
 organizer login goes through a mandatory second factor
 (`backend/src/controllers/authController.js` `login()`, added 2026-09-04) —
 `LoginForm` handles this as an in-place step (`VerifyLoginOtp`) after the
@@ -180,7 +221,7 @@ says).
 
 Session restoration on app launch re-runs the `/auth/me` check rather than
 trusting a cached role — an expired or revoked token clears the stored token
-and drops the user back to the welcome screen (`src/store/authStore.ts`,
+and drops the user back to the sign-in screen (`src/store/authStore.ts`,
 `bootstrap()`). Any `401` from any API call clears the session globally
 (`src/api/client.ts`'s `setUnauthorizedHandler`), not just in the screen that
 happened to make the failing request.
@@ -190,12 +231,12 @@ happened to make the failing request.
 `app/(auth)/forgot-password.tsx` is a 3-step flow (request code by email or
 phone → verify code → set new password) against the role-agnostic
 `/api/auth/forgot-password` / `/verify-reset-code` / `/reset-password`, linked
-from both login screens. A successful reset signs the account in
+from every login screen. A successful reset signs the account in
 immediately, matching what the backend does.
 
 ### Organizer sign-up + phone verification
 
-Not linked from the UI right now (removed per direction — the welcome/login
+Not linked from the UI right now (removed per direction — the sign-in/login
 screens no longer offer account creation, only sign-in). The screen and its
 backend call still work if something links to `/organizer-signup` again.
 
@@ -216,23 +257,86 @@ created but inactive; the success screen tells the organizer their
 application needs admin approval before they can sign in, matching what the
 backend actually does.
 
-## Organizer dashboard
+## Organizer screens
 
-`app/organizer/index.tsx` calls the one endpoint that has everything the
-home screen needs: `GET /api/organizers/:organizerId/dashboard?currency=ETB`
+`app/organizer/(tabs)/index.tsx` calls the one endpoint that has everything
+the Dashboard tab needs: `GET /api/organizers/:organizerId/dashboard?currency=ETB`
 (`backend/src/controllers/organizerController.js`) — an aggregation that
 returns the organizer's events already joined with per-event ticket stats
 and revenue, plus a balance summary. The balance card, the events stat
 strip, and a pull-to-refresh event list are all built from that single
 response — no separate calls per event. Currency is hardcoded to ETB for now
-(`app/organizer/index.tsx`'s `CURRENCY` constant); a currency toggle is a
-natural next step if organizers need USD.
+(this file's `CURRENCY` constant); a currency toggle is a natural next step
+if organizers need USD.
 
 This endpoint 500'd with `ReferenceError: Withdrawal is not defined` until
 2026-09-04 — `organizerController.js` used the `Withdrawal` model in its
 balance aggregation without importing it. Fixed with a one-line import;
 worth knowing about if you see the same error again after a merge that
 touches that file.
+
+`app/organizer/(tabs)/tickets.tsx` combines two endpoints: a paginated
+`GET /api/tickets/organizer/all` (every ticket sold across the organizer's
+events, `useInfiniteQuery` + "load more on scroll") for the header stats and
+the sale list, and `GET /api/organizers/:organizerId/top-customers` for the
+ranked top-customers section beneath it.
+
+`app/organizer/(tabs)/bar.tsx` always calls
+`GET /api/beverages/organizer/eligibility` first — this is deliberately the
+*only* beverage endpoint that never 403s, "so the organizer app can decide
+whether to show the feature at all" (its own route comment). Only when that
+comes back `"eligible"` does the screen call
+`GET /api/beverages/organizer/dashboard` for the totals/by-drink/by-event/
+recent-sales data; otherwise it shows a plain "not enabled yet" state
+instead of surfacing the 403 as an error.
+
+## Cashier (cinema) screens
+
+"Cashier" is this app's name for the backend's `cinema` role — a login tied
+to a `Cinema` business document, gated by `requireCinemaAccount` on every
+`/api/cinemas/me/*` call (resolved from the account, never from a
+client-supplied cinema id, so one cinema account can never reach another's
+data). This surface required no backend work at all — it already had a
+complete API before this app existed.
+
+`app/cashier/(tabs)/index.tsx` calls `GET /api/cinemas/me` (profile) and
+`GET /api/cinemas/me/finance` (combined balance +
+`streams: { tickets, beverages }`, each its own available/pending/revenue —
+see `cinemaFinanceService.calculateCinemaBalance` for the exact shape).
+Tickets and Bar tabs are `GET /api/cinemas/me/ticket-sales(/summary)` and
+`GET /api/cinemas/me/concessions` + `/concession-sales/summary`
+respectively — the same box-office-sale and concessions-catalog views a
+cinema's own admin panel would show, just read-only and mobile-shaped here.
+
+Selling a ticket at the counter or ringing up a concessions sale from this
+app is **not built yet** — this pass is the viewing/reporting half of the
+role. See "Next steps".
+
+## Usher screens
+
+Ushers are admin-created `User` accounts (role `"usher"`, added to the
+backend 2026-09-06 by a parallel effort — see "Backend limitations" for how
+this was coordinated with this app's own work). There's no usher sign-up;
+an admin creates the account, then grants scan access per event by
+generating a short code the usher redeems.
+
+- `app/usher/index.tsx` — "My events": `GET /api/ushers/my-events` lists
+  every event this usher currently has a live grant for (an usher can hold
+  more than one at once). Tapping an event opens its scanner.
+- `app/usher/unlock.tsx` — a 6-character code entry
+  (`POST /api/ushers/unlock-event { code }`) for gaining access to a new
+  event; invalidates the "my events" query on success so the new event
+  shows up immediately.
+- `app/usher/scanner/[eventId].tsx` — a live camera QR scanner
+  (`expo-camera`'s `CameraView`, `barcodeTypes: ["qr"]`). Each scanned
+  ticket QR (a bare `ticketId` string, no JSON envelope) is sent to
+  `POST /api/tickets/validate-qr { qrData, scopeEventId }`, where
+  `scopeEventId` is this screen's event — the backend checks the usher's
+  access grant against the ticket's *real* event, never against whatever
+  this screen claims, so an usher can't check in tickets for an event they
+  weren't actually granted. Handles all four backend outcomes distinctly:
+  fresh check-in, already-checked-in (a re-scan), not-enough-uses, and no
+  access to this event.
 
 ## Security considerations
 
@@ -277,24 +381,39 @@ touches that file.
      the same hash-and-compare approach applies directly), or add a
      standalone `POST /api/auth/verify-otp { phoneNumber, code }` for
      pre-account-creation phone verification.
-2. **No "usher" role or event-staff-assignment model.** `User.js`'s role
-   enum is `["customer", "organizer", "venue", "cinema"]` — no usher/staff
-   role, and no model anywhere assigns a user to scan a specific event.
-   Today, ticket scanning is implicitly whoever is authenticated as the
-   event's organizer (or admin); there's no way to grant a separate account
-   scan-only access to one event. **This is the planned next piece of
-   backend work** — see "Next steps".
-   - **Smallest fix:** add `"usher"` to the role enum plus a minimal
-     assignment model (e.g. `EventStaff { userId, eventId }`), and gate the
-     ticket-scan endpoint on "caller is the event's organizer OR caller is
-     assigned staff for that event," not just organizer ownership.
+2. **~~No "usher" role or event-staff-assignment model~~ — resolved
+   2026-09-06.** A separate Claude session working directly on
+   `~/Documents/pazimo/backend` added this while this app's own sign-in/tabs
+   work was in progress; the two sessions coordinated over a direct message
+   exchange rather than guessing at each other's contract. Shipped: `"usher"`
+   added to `User.js`'s role enum (admin-created only, `POST /api/ushers`,
+   no self sign-up); `EventUsherCode` (one short code per event,
+   generate/view via `POST`/`GET /api/ushers/events/:eventId/code`) and
+   `UsherEventAccess` (the actual grant, created by
+   `POST /api/ushers/unlock-event { code }`, revoked via
+   `PATCH /api/ushers/events/:eventId/access/:usherId/revoke`) as the
+   assignment model — code-based rather than a static admin-picks-the-usher
+   join table. `PATCH /api/tickets/:ticketId/check-in` and
+   `POST /api/tickets/validate-qr` both now accept `"usher"` in their
+   `restrictTo(...)` list, checking the usher's grant against the ticket's
+   real event rather than organizer-ownership. See "Usher screens" above
+   for how this app uses it.
 
 ## Next steps
 
-- **Usher role on the backend** (planned next) — once `"usher"` exists and
-  accounts can be assigned to an event, `usher-login.tsx` and `app/usher/`
-  need zero changes to start working; only the placeholder home screen and
-  the actual scanner need building.
+- Selling a ticket at the cinema box office / ringing up a concessions sale
+  from the cashier app itself (`POST /api/cinemas/me/ticket-sales`,
+  `/me/concession-sales` both already exist server-side) — this pass is
+  read-only reporting for the cashier role.
+- A manual ticketId + count check-in path for ushers as a fallback when a
+  QR won't scan (damaged code, printed ticket) —
+  `PATCH /api/tickets/:ticketId/check-in { count, scopeEventId }` already
+  supports it; only the UI is missing.
+- Real brand assets. `assets/icon.png` / `assets/splash-icon.png` are still
+  Expo's default template art — there is no actual Pazimo logomark in this
+  repo. The splash screen and sign-in screen are intentionally
+  typographic-only (a "Pazimo" wordmark, matching the rest of this design
+  system) until real art exists to drop in.
 - Wire up sign-up phone verification once it has a backend-checked path;
   until then, don't present the current sign-up OTP step as real
   verification to end users.
@@ -302,7 +421,6 @@ touches that file.
   moves elsewhere entirely) — it's currently unreachable from the UI.
 - Event detail screen (tap an event card) — `GET /api/events/:id` has
   everything beyond what the dashboard's list view already shows.
-- Ticket sales / attendee list drill-down per event.
 - A currency toggle (ETB/USD) on the dashboard, if organizers need it.
 - Add EAS Build configuration when it's time to produce real app binaries.
 

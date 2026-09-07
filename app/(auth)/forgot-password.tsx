@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { forgotPassword, resetPassword, verifyResetCode } from "@/api/auth";
@@ -16,7 +16,8 @@ import {
 } from "@/features/auth/schemas";
 import { bannerMessageFor, VALIDATION_ERROR_MESSAGE } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
-import { colors } from "@/lib/theme";
+import type { ThemeColors } from "@/lib/theme";
+import { useColors } from "@/lib/useColors";
 import { useAuthStore } from "@/store/authStore";
 
 export default function ForgotPasswordScreen() {
@@ -64,6 +65,8 @@ function RequestCodeStep({
   onChangeIdentifier: (v: string) => void;
   onSent: (maskedDestination: string) => void;
 }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [fieldError, setFieldError] = useState<string | undefined>();
 
   const mutation = useMutation({
@@ -131,6 +134,8 @@ function EnterCodeStep({
   onBack: () => void;
   onVerified: (code: string) => void;
 }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [code, setCode] = useState("");
   const [codeError, setCodeError] = useState<string | null>(null);
 
@@ -199,6 +204,8 @@ function EnterCodeStep({
 }
 
 function NewPasswordStep({ identifier, code }: { identifier: string; code: string }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const signIn = useAuthStore((s) => s.signIn);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -262,41 +269,42 @@ function NewPasswordStep({ identifier, code }: { identifier: string; code: strin
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    alignItems: "center",
-    gap: 6,
-    marginTop: 24,
-    marginBottom: 32,
-  },
-  title: {
-    fontFamily: fonts.bold,
-    fontSize: 22,
-    color: colors.ink,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: colors.textMuted,
-    textAlign: "center",
-  },
-  form: {
-    gap: 16,
-  },
-  otpWrap: {
-    alignItems: "center",
-    gap: 8,
-  },
-  otpError: {
-    fontSize: 13,
-    color: colors.error,
-  },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 32,
-  },
-  footerText: {
-    color: colors.textMuted,
-    fontSize: 15,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    header: {
+      alignItems: "center",
+      gap: 6,
+      marginTop: 24,
+      marginBottom: 32,
+    },
+    title: {
+      fontFamily: fonts.bold,
+      fontSize: 22,
+      color: colors.ink,
+    },
+    subtitle: {
+      fontSize: 15,
+      color: colors.textMuted,
+      textAlign: "center",
+    },
+    form: {
+      gap: 16,
+    },
+    otpWrap: {
+      alignItems: "center",
+      gap: 8,
+    },
+    otpError: {
+      fontSize: 13,
+      color: colors.error,
+    },
+    footer: {
+      flexDirection: "row",
+      justifyContent: "center",
+      marginTop: 32,
+    },
+    footerText: {
+      color: colors.textMuted,
+      fontSize: 15,
+    },
+  });

@@ -6,44 +6,46 @@ import { useColors } from "@/lib/useColors";
 
 const CODE_LENGTH = 6;
 
-interface OtpInputProps {
+interface CodeInputProps {
   value: string;
   onChange: (value: string) => void;
   autoFocus?: boolean;
 }
 
 /**
- * A single hidden TextInput driving a row of visible digit boxes — simpler
- * and less fragile than wiring focus management across N separate inputs.
+ * Boxed input for the usher event-unlock code — same "hidden input drives
+ * visible boxes" approach as OtpInput, but alphanumeric and uppercased
+ * instead of numeric-only, since event codes mix letters and digits.
  */
-export function OtpInput({ value, onChange, autoFocus }: OtpInputProps) {
+export function CodeInput({ value, onChange, autoFocus }: CodeInputProps) {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const inputRef = useRef<TextInput>(null);
-  const digits = value.padEnd(CODE_LENGTH, " ").split("").slice(0, CODE_LENGTH);
+  const chars = value.padEnd(CODE_LENGTH, " ").split("").slice(0, CODE_LENGTH);
 
   return (
     <Pressable onPress={() => inputRef.current?.focus()}>
       <View style={styles.row}>
-        {digits.map((digit, index) => (
+        {chars.map((char, index) => (
           <View
             key={index}
             style={[styles.box, index === value.length && styles.boxActive]}
           >
-            <TextInput editable={false} value={digit.trim()} style={styles.boxText} />
+            <TextInput editable={false} value={char.trim()} style={styles.boxText} />
           </View>
         ))}
       </View>
       <TextInput
         ref={inputRef}
         value={value}
-        onChangeText={(text) => onChange(text.replace(/[^0-9]/g, "").slice(0, CODE_LENGTH))}
-        keyboardType="number-pad"
+        onChangeText={(text) =>
+          onChange(text.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, CODE_LENGTH))
+        }
+        autoCapitalize="characters"
+        autoCorrect={false}
         autoFocus={autoFocus}
         maxLength={CODE_LENGTH}
         style={styles.hiddenInput}
-        autoComplete="sms-otp"
-        textContentType="oneTimeCode"
       />
     </Pressable>
   );
@@ -54,7 +56,7 @@ const createStyles = (colors: ThemeColors) =>
     row: {
       flexDirection: "row",
       justifyContent: "center",
-      gap: 10,
+      gap: 8,
     },
     box: {
       width: 44,
@@ -70,8 +72,8 @@ const createStyles = (colors: ThemeColors) =>
       borderColor: colors.accent,
     },
     boxText: {
-      fontSize: 20,
-      fontWeight: "600",
+      fontSize: 19,
+      fontWeight: "700",
       color: colors.ink,
       textAlign: "center",
       padding: 0,

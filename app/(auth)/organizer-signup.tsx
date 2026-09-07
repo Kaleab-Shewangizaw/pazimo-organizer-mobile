@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { organizerSignUp, sendOtp } from "@/api/auth";
@@ -18,7 +18,8 @@ import {
 } from "@/features/auth/schemas";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
-import { colors } from "@/lib/theme";
+import type { ThemeColors } from "@/lib/theme";
+import { useColors } from "@/lib/useColors";
 
 const ORGANIZER_TYPES = [
   "Individual",
@@ -159,6 +160,8 @@ export default function OrganizerSignUpScreen() {
 }
 
 function StepIndicator({ activeIndex }: { activeIndex: number }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.stepRow}>
       {STEP_LABELS.map((label, index) => (
@@ -201,6 +204,8 @@ function AccountStep({
   onChange: (v: OrganizerAccountValues) => void;
   onNext: () => void;
 }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.form}>
       <Text style={styles.stepTitle}>Create your account</Text>
@@ -255,6 +260,8 @@ function OrgStep({
   onBack: () => void;
   onNext: () => void;
 }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.form}>
       <Text style={styles.stepTitle}>About your organization</Text>
@@ -320,6 +327,8 @@ function VerifyPhoneStep({
   onBack: () => void;
   onNext: () => void;
 }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.form}>
       <Text style={styles.stepTitle}>Verify your phone</Text>
@@ -367,6 +376,8 @@ function ReviewStep({
   onBack: () => void;
   onSubmit: () => void;
 }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.form}>
       <Text style={styles.stepTitle}>Review & submit</Text>
@@ -406,6 +417,8 @@ function ReviewStep({
 }
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.summaryRow}>
       <Text style={styles.summaryLabel}>{label}</Text>
@@ -417,6 +430,8 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 }
 
 function SignUpSuccess({ email }: { email: string }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <Screen scroll={false}>
       <View style={styles.successContainer}>
@@ -439,7 +454,8 @@ function SignUpSuccess({ email }: { email: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
   stepRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -461,8 +477,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   stepDotActive: {
-    backgroundColor: colors.navy,
-    borderColor: colors.navy,
+    backgroundColor: colors.ink,
+    borderColor: colors.ink,
   },
   stepDotText: {
     fontSize: 13,
@@ -526,8 +542,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   chipActive: {
-    backgroundColor: colors.navy,
-    borderColor: colors.navy,
+    backgroundColor: colors.ink,
+    borderColor: colors.ink,
   },
   chipText: {
     fontSize: 13,
@@ -613,4 +629,4 @@ const styles = StyleSheet.create({
     marginTop: 8,
     alignSelf: "stretch",
   },
-});
+  });

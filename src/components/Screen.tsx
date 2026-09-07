@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useMemo } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -8,7 +9,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { colors } from "@/lib/theme";
+import type { ThemeColors } from "@/lib/theme";
+import { useColors } from "@/lib/useColors";
 
 interface ScreenProps {
   children: ReactNode;
@@ -17,6 +19,9 @@ interface ScreenProps {
 
 /** Standard screen chrome: safe area + keyboard avoidance + optional scroll. */
 export function Screen({ children, scroll = true }: ScreenProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const content = scroll ? (
     <ScrollView
       contentContainerStyle={styles.scrollContent}
@@ -40,20 +45,21 @@ export function Screen({ children, scroll = true }: ScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.paper,
-  },
-  flex: {
-    flex: 1,
-  },
-  flexContent: {
-    flex: 1,
-    padding: 20,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    padding: 20,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    flex: {
+      flex: 1,
+    },
+    flexContent: {
+      flex: 1,
+      padding: 20,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      padding: 20,
+    },
+  });

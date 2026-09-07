@@ -6,7 +6,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
@@ -33,6 +33,16 @@
         "expo-camera",
         {
           "cameraPermission": "Pazimo needs camera access so you can scan ticket QR codes at the door."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FFFFFF",
+          "resizeMode": "contain",
+          "dark": {
+            "backgroundColor": "#0A0A0B"
+          }
         }
       ]
     ],
