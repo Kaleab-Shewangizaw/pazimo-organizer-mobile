@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/Button";
+import { useTabBarHeight } from "@/components/TabBarHeightProvider";
 import { ThemeToggleButton } from "@/components/ThemeToggleButton";
 import { fonts } from "@/lib/fonts";
 import type { ThemeColors } from "@/lib/theme";
@@ -12,12 +13,13 @@ import { useAuthStore } from "@/store/authStore";
 export default function UsherAccountScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const tabBarHeight = useTabBarHeight();
   const user = useAuthStore((s) => s.user);
   const signOut = useAuthStore((s) => s.signOut);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarHeight + 24 }]}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>Account</Text>
           <ThemeToggleButton />

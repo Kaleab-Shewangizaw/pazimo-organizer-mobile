@@ -10,6 +10,7 @@ import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { EventCard } from "@/components/EventCard";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { useTabBarHeight } from "@/components/TabBarHeightProvider";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { resolveMediaUrl } from "@/lib/media";
@@ -34,6 +35,7 @@ const CURRENCY = "ETB" as const;
 export default function OrganizerTicketsScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const tabBarHeight = useTabBarHeight();
   const organizerId = useAuthStore((s) => s.user?._id);
 
   const query = useQuery({
@@ -67,7 +69,7 @@ export default function OrganizerTicketsScreen() {
       <FlatList<DashboardEvent>
         data={events}
         keyExtractor={(item) => item._id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: tabBarHeight + 24 }]}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListHeaderComponent={
           <View style={styles.header}>

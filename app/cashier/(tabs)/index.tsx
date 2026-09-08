@@ -9,10 +9,11 @@ import { Button } from "@/components/Button";
 import { HeroCard } from "@/components/HeroCard";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { StatTile } from "@/components/StatTile";
+import { useTabBarHeight } from "@/components/TabBarHeightProvider";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
-import type { ThemeColors } from "@/lib/theme";
+import { accentAlt, type ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 import { useAuthStore } from "@/store/authStore";
 
@@ -21,6 +22,7 @@ const CURRENCY = "ETB" as const;
 export default function CashierHomeScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const tabBarHeight = useTabBarHeight();
   const user = useAuthStore((s) => s.user);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -63,9 +65,9 @@ export default function CashierHomeScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <ScrollView
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: tabBarHeight + 24 }]}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={accentAlt(colors)} />
         }
       >
         <Text style={styles.greeting}>Good to see you, {user?.firstName}</Text>

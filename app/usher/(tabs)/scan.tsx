@@ -8,6 +8,7 @@ import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { useTabBarHeight } from "@/components/TabBarHeightProvider";
 import { TicketScanner } from "@/components/TicketScanner";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
@@ -24,6 +25,7 @@ import { useColors } from "@/lib/useColors";
 export default function UsherScanTabScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const tabBarHeight = useTabBarHeight();
 
   const eventsQuery = useQuery({
     queryKey: ["usher-my-events"],
@@ -38,7 +40,7 @@ export default function UsherScanTabScreen() {
     const message = bannerMessageFor(eventsQuery.error) ?? "Couldn't load your event.";
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.errorContainer}>
+        <View style={[styles.errorContainer, { paddingBottom: tabBarHeight }]}>
           <Banner kind="error" message={message} />
           <Button label="Try again" onPress={() => eventsQuery.refetch()} />
         </View>
@@ -51,7 +53,7 @@ export default function UsherScanTabScreen() {
   if (!current) {
     return (
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-        <View style={styles.emptyContent}>
+        <View style={[styles.emptyContent, { paddingBottom: tabBarHeight }]}>
           <Text style={styles.title}>Scan</Text>
           <EmptyState
             title="No event to scan"

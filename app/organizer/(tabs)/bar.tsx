@@ -11,6 +11,7 @@ import { HeroCard } from "@/components/HeroCard";
 import { ListRow } from "@/components/ListRow";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { ProgressBar } from "@/components/ProgressBar";
+import { useTabBarHeight } from "@/components/TabBarHeightProvider";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
@@ -23,6 +24,7 @@ const CURRENCY = "ETB" as const;
 export default function OrganizerBarScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const tabBarHeight = useTabBarHeight();
 
   const eligibilityQuery = useQuery({
     queryKey: ["beverage-eligibility"],
@@ -94,7 +96,7 @@ export default function OrganizerBarScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-      <ScrollView contentContainerStyle={styles.listContent}>
+      <ScrollView contentContainerStyle={[styles.listContent, { paddingBottom: tabBarHeight + 24 }]}>
         <Text style={styles.screenTitle}>Bar</Text>
 
         <HeroCard

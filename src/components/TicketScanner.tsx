@@ -7,6 +7,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { checkInTicket, validateTicketQr } from "@/api/tickets";
+import { useTabBarHeight } from "@/components/TabBarHeightProvider";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { darkColors } from "@/lib/theme";
@@ -91,6 +92,7 @@ export function TicketScanner({
   onBack?: () => void;
 }) {
   const isFocused = useIsFocused();
+  const tabBarHeight = useTabBarHeight();
   const [permission, requestPermission] = useCameraPermissions();
   const [state, setState] = useState<ScanState>({ stage: "scanning" });
   const [count, setCount] = useState(1);
@@ -185,7 +187,10 @@ export function TicketScanner({
         <View style={styles.fill} />
       )}
 
-      <SafeAreaView style={styles.overlay} pointerEvents="box-none">
+      <SafeAreaView
+        style={[styles.overlay, tabBarHeight > 0 && { paddingBottom: 20 + tabBarHeight }]}
+        pointerEvents="box-none"
+      >
         <View style={styles.topBar}>
           {onBack ? (
             <Pressable onPress={onBack} style={styles.backButton}>
@@ -273,14 +278,18 @@ function ReviewCard({
   onCancel: () => void;
 }) {
   const maxCount = Math.max(1, ticket.ticketCount || 1);
+  const ticketTypeLabel = ticket.ticketType?.trim() || "Standard";
+  const isGuestTicket = ticketTypeLabel.toLowerCase() === "guest";
 
   return (
     <View style={styles.reviewCard}>
       <Text style={styles.reviewName}>{ticket.userName}</Text>
-      <Text style={styles.reviewMeta}>
-        {ticket.eventTitle}
-        {ticket.ticketType ? ` · ${ticket.ticketType}` : ""}
-      </Text>
+      <View style={[styles.ticketTypeBadge, isGuestTicket && styles.ticketTypeBadgeGuest]}>
+        <Text style={[styles.ticketTypeText, isGuestTicket && styles.ticketTypeTextGuest]}>
+          {ticketTypeLabel}
+        </Text>
+      </View>
+      <Text style={styles.reviewMeta}>{ticket.eventTitle}</Text>
       <Text style={styles.reviewAdmits}>Admits up to {maxCount}</Text>
 
       <View style={styles.stepperRow}>
@@ -413,6 +422,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textMuted,
     textAlign: "center",
+  },
+  ticketTypeBadge: {
+    marginTop: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: colors.surfaceAlt,
+  },
+  ticketTypeText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.ink,
+  },
+  // A guest ticket isn't a paid seat, so it gets its own color to stand out
+  // at a glance — same idea as resultWarning ("already checked in") and
+  // resultMismatch ("wrong event") below each getting a distinct color.
+  ticketTypeBadgeGuest: {
+    backgroundColor: "rgba(192, 132, 252, 0.18)",
+  },
+  ticketTypeTextGuest: {
+    color: "#C084FC",
   },
   reviewAdmits: {
     fontSize: 13,

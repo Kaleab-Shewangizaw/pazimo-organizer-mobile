@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { HeroCard } from "@/components/HeroCard";
 import { ListRow } from "@/components/ListRow";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { useTabBarHeight } from "@/components/TabBarHeightProvider";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
@@ -21,6 +22,7 @@ const CURRENCY = "ETB" as const;
 export default function CashierBarScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const tabBarHeight = useTabBarHeight();
 
   const summaryQuery = useQuery({
     queryKey: ["cinema-concession-summary"],
@@ -60,7 +62,7 @@ export default function CashierBarScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-      <ScrollView contentContainerStyle={styles.listContent}>
+      <ScrollView contentContainerStyle={[styles.listContent, { paddingBottom: tabBarHeight + 24 }]}>
         <Text style={styles.screenTitle}>Bar</Text>
 
         <HeroCard

@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { ListRow } from "@/components/ListRow";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { StatTile } from "@/components/StatTile";
+import { useTabBarHeight } from "@/components/TabBarHeightProvider";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
@@ -23,6 +24,7 @@ const PAGE_SIZE = 30;
 export default function CashierTicketsScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const tabBarHeight = useTabBarHeight();
 
   const summaryQuery = useQuery({
     queryKey: ["cinema-ticket-summary"],
@@ -68,7 +70,7 @@ export default function CashierTicketsScreen() {
       <FlatList<CinemaTicketSale>
         data={sales}
         keyExtractor={(item, index) => item._id ?? item.ticketId ?? String(index)}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: tabBarHeight + 24 }]}
         onEndReachedThreshold={0.4}
         onEndReached={() => {
           if (salesQuery.hasNextPage && !salesQuery.isFetchingNextPage) {
