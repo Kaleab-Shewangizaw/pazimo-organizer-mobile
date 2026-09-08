@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getEventTickets } from "@/api/tickets";
@@ -36,36 +36,55 @@ const STATUS_COLOR = (colors: ThemeColors): Partial<Record<TicketStatus, string>
  * Per-event ticket sales — which ticket types this event sold, how many,
  * and how much they collected, plus the individual sale rows. Mirrors the
  * web app's organizer/customers page (same GET /api/tickets/event/:eventId).
+ *
+ * Split into two queries: `statsQuery` (limit=1) gets the header numbers
+ * and ticket-type breakdown cheaply — the backend computes those from a
+ * separate aggregate that ignores `limit`, so this costs the same as a
+ * full fetch would for the stats themselves, but the buyer rows (which can
+ * run to hundreds of rows of user PII) only come down once the organizer
+ * actually asks for them via "Show tickets", instead of on every visit.
  */
 export default function EventTicketsScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { eventId, title } = useLocalSearchParams<{ eventId: string; title?: string }>();
+  const { eventId, title, cover } = useLocalSearchParams<{
+    eventId: string;
+    title?: string;
+    cover?: string;
+  }>();
   const [search, setSearch] = useState("");
+  const [ticketsRevealed, setTicketsRevealed] = useState(false);
 
-  const query = useQuery({
-    queryKey: ["event-tickets", eventId],
-    queryFn: () => getEventTickets(eventId, 1, 100),
+  const statsQuery = useQuery({
+    queryKey: ["event-tickets", eventId, "stats"],
+    queryFn: () => getEventTickets(eventId, 1, 1),
     enabled: !!eventId,
   });
 
-  if (query.isPending) {
+  const listQuery = useQuery({
+    queryKey: ["event-tickets", eventId, "list"],
+    queryFn: () => getEventTickets(eventId, 1, 100),
+    enabled: !!eventId && ticketsRevealed,
+  });
+
+  if (statsQuery.isPending) {
     return <LoadingScreen />;
   }
 
-  if (query.isError) {
-    const message = bannerMessageFor(query.error) ?? "Couldn't load ticket sales.";
+  if (statsQuery.isError) {
+    const message = bannerMessageFor(statsQuery.error) ?? "Couldn't load ticket sales.";
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.errorContainer}>
           <Banner kind="error" message={message} />
-          <Button label="Try again" onPress={() => query.refetch()} />
+          <Button label="Try again" onPress={() => statsQuery.refetch()} />
         </View>
       </SafeAreaView>
     );
   }
 
-  const { tickets, statistics } = query.data;
+  const { statistics } = statsQuery.data;
+  const tickets = listQuery.data?.tickets ?? [];
   const searchLower = search.trim().toLowerCase();
   const filtered = searchLower
     ? tickets.filter((t) => {
@@ -91,11 +110,21 @@ export default function EventTicketsScreen() {
       </View>
 
       <FlatList<OrganizerTicket>
-        data={filtered}
+        data={ticketsRevealed ? filtered : []}
         keyExtractor={(item) => item.ticketId}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View style={styles.header}>
+            {cover ? (
+              <Image source={{ uri: cover }} style={styles.heroImage} />
+            ) : (
+              <View style={[styles.heroImage, styles.heroFallback]}>
+                <Text style={styles.heroFallbackInitial}>
+                  {(title ?? "?").charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
+
             <View style={styles.statsRow}>
               <StatTile
                 label="Total revenue"
@@ -108,31 +137,55 @@ export default function EventTicketsScreen() {
             {statistics.ticketTypeBreakdown.length > 0 ? (
               <>
                 <Text style={styles.sectionEyebrow}>Ticket types</Text>
-                {statistics.ticketTypeBreakdown.map((row, index) => (
-                  <View key={`${row.ticketType}-${row.isOnDoor}-${index}`} style={styles.typeRow}>
-                    <View style={styles.typeLeft}>
-                      <Text style={styles.typeName}>{row.ticketType}</Text>
-                      <Text style={styles.typeMeta}>
-                        {row.isOnDoor ? "On-door" : "Online"} · {formatMoney(row.pricePerTicket, CURRENCY)} each
+                <View style={styles.typesGrid}>
+                  {statistics.ticketTypeBreakdown.map((row, index) => (
+                    <View key={`${row.ticketType}-${row.isOnDoor}-${index}`} style={styles.typeCard}>
+                      <Text style={styles.typeCardMeta}>{row.isOnDoor ? "On-door" : "Online"}</Text>
+                      <Text style={styles.typeCardName} numberOfLines={1}>
+                        {row.ticketType}
                       </Text>
+                      <Text style={styles.typeCardPrice}>
+                        {formatMoney(row.pricePerTicket, CURRENCY)} each
+                      </Text>
+                      <View style={styles.typeCardFooter}>
+                        <Text style={styles.typeCardSold}>{row.totalSold} sold</Text>
+                        <Text style={styles.typeCardRevenue}>
+                          {formatMoney(row.totalRevenue, CURRENCY)}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={styles.typeRight}>
-                      <Text style={styles.typeSold}>{row.totalSold} sold</Text>
-                      <Text style={styles.typeRevenue}>{formatMoney(row.totalRevenue, CURRENCY)}</Text>
-                    </View>
-                  </View>
-                ))}
+                  ))}
+                </View>
               </>
             ) : null}
 
             <Text style={styles.sectionEyebrow}>Buyers</Text>
-            <TextField
-              label=""
-              placeholder="Search by name, email, or ticket ID"
-              value={search}
-              onChangeText={setSearch}
-              style={styles.search}
-            />
+            {ticketsRevealed ? (
+              <TextField
+                label=""
+                placeholder="Search by name, email, or ticket ID"
+                value={search}
+                onChangeText={setSearch}
+                style={styles.search}
+              />
+            ) : (
+             
+                
+                <Button
+                  label="Show tickets"
+                  variant="secondary"
+                  onPress={() => setTicketsRevealed(true)}
+                  disabled={statistics.totalTickets === 0}
+                />
+              
+            )}
+
+            {ticketsRevealed && listQuery.isError ? (
+              <Banner
+                kind="error"
+                message={bannerMessageFor(listQuery.error) ?? "Couldn't load buyers."}
+              />
+            ) : null}
           </View>
         }
         renderItem={({ item }) => (
@@ -145,14 +198,21 @@ export default function EventTicketsScreen() {
           />
         )}
         ListEmptyComponent={
-          <EmptyState
-            title={search ? "No matches" : "No paid tickets yet"}
-            body={
-              search
-                ? "Try a different name, email, or ticket ID."
-                : "Ticket sales for this event will show up here."
-            }
-          />
+          !ticketsRevealed ? null : listQuery.isPending ? (
+            <View style={styles.loadingRow}>
+              <ActivityIndicator color={colors.accent} />
+              <Text style={styles.loadingText}>Loading buyers…</Text>
+            </View>
+          ) : listQuery.isError ? null : (
+            <EmptyState
+              title={search ? "No matches" : "No paid tickets yet"}
+              body={
+                search
+                  ? "Try a different name, email, or ticket ID."
+                  : "Ticket sales for this event will show up here."
+              }
+            />
+          )
         }
       />
     </SafeAreaView>
@@ -184,8 +244,23 @@ const createStyles = (colors: ThemeColors) =>
       padding: 20,
     },
     header: {
-      gap: 12,
+      gap: 14,
       marginBottom: 4,
+    },
+    heroImage: {
+      width: "100%",
+      height: 160,
+      borderRadius: 20,
+      backgroundColor: colors.surfaceAlt,
+    },
+    heroFallback: {
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    heroFallbackInitial: {
+      fontFamily: fonts.extrabold,
+      fontSize: 44,
+      color: colors.textMuted,
     },
     statsRow: {
       flexDirection: "row",
@@ -197,45 +272,83 @@ const createStyles = (colors: ThemeColors) =>
       letterSpacing: 1.2,
       textTransform: "uppercase",
       color: colors.textMuted,
-      marginTop: 8,
+      marginTop: 4,
     },
-    typeRow: {
+    typesGrid: {
       flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      flexWrap: "wrap",
+      gap: 12,
     },
-    typeLeft: {
-      flex: 1,
-      gap: 2,
+    typeCard: {
+      flexBasis: "47%",
+      flexGrow: 1,
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 14,
+      gap: 4,
     },
-    typeName: {
+    typeCardMeta: {
+      fontSize: 11,
+      fontWeight: "700",
+      letterSpacing: 0.8,
+      textTransform: "uppercase",
+      color: colors.textMuted,
+    },
+    typeCardName: {
       fontFamily: fonts.semibold,
       fontSize: 15,
       color: colors.ink,
     },
-    typeMeta: {
+    typeCardPrice: {
       fontSize: 12,
       color: colors.textMuted,
     },
-    typeRight: {
-      alignItems: "flex-end",
-      gap: 2,
+    typeCardFooter: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginTop: 6,
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
     },
-    typeSold: {
+    typeCardSold: {
       fontSize: 13,
       fontWeight: "600",
       color: colors.ink,
     },
-    typeRevenue: {
+    typeCardRevenue: {
       fontSize: 13,
-      color: colors.accent,
+      color: colors.accentText,
       fontWeight: "700",
+    },
+    showTicketsCard: {
+      backgroundColor: colors.surfaceAlt,
+      borderRadius: 16,
+      padding: 16,
+      gap: 12,
+    },
+    showTicketsBody: {
+      fontFamily: fonts.body,
+      fontSize: 13,
+      color: colors.textMuted,
+      lineHeight: 19,
     },
     search: {
       marginTop: -2,
+    },
+    loadingRow: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 40,
+      gap: 10,
+    },
+    loadingText: {
+      fontFamily: fonts.body,
+      fontSize: 13,
+      color: colors.textMuted,
     },
     errorContainer: {
       flex: 1,

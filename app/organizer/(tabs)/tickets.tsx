@@ -1,23 +1,22 @@
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useMemo } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getOrganizerDashboard } from "@/api/organizers";
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
+import { EventCard } from "@/components/EventCard";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { StatusBadge } from "@/components/StatusBadge";
 import { bannerMessageFor } from "@/lib/errors";
-import { formatEventDateRange, formatMoney } from "@/lib/format";
 import { fonts } from "@/lib/fonts";
+import { resolveMediaUrl } from "@/lib/media";
 import type { ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 import { useAuthStore } from "@/store/authStore";
 import type { DashboardEvent } from "@/types";
-import { Ionicons } from "@expo/vector-icons";
 
 const CURRENCY = "ETB" as const;
 
@@ -26,6 +25,11 @@ const CURRENCY = "ETB" as const;
  * pick an event before seeing anything about who bought what. Reuses the
  * dashboard's cached query (same queryKey) so opening this tab right after
  * Dashboard costs no extra request.
+ *
+ * Rows are the same EventCard used elsewhere (cover art, ticket-stub tear
+ * line, sold/checked-in/revenue metrics) with the status badge hidden —
+ * every event listed here is fair game to open regardless of publish
+ * status, so the badge would only add noise.
  */
 export default function OrganizerTicketsScreen() {
   const colors = useColors();
@@ -64,6 +68,7 @@ export default function OrganizerTicketsScreen() {
         data={events}
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContent}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListHeaderComponent={
           <View style={styles.header}>
             <Text style={styles.title}>Tickets</Text>
@@ -71,24 +76,21 @@ export default function OrganizerTicketsScreen() {
           </View>
         }
         renderItem={({ item }) => (
-          <Pressable
+          <EventCard
+            event={item}
+            currency={CURRENCY}
+            showStatus={false}
             onPress={() =>
-              router.push({ pathname: "/organizer/tickets/[eventId]", params: { eventId: item._id, title: item.title } })
+              router.push({
+                pathname: "/organizer/tickets/[eventId]",
+                params: {
+                  eventId: item._id,
+                  title: item.title,
+                  cover: resolveMediaUrl(item.coverImages?.[0]) ?? "",
+                },
+              })
             }
-            style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-          >
-            <View style={styles.rowLeft}>
-              <Text style={styles.rowTitle} numberOfLines={1}>
-                {item.title}
-              </Text>
-              <Text style={styles.rowSubtitle}>
-                {formatEventDateRange(item.startDate, item.endDate)} · {item.ticketStats.total} sold ·{" "}
-                {formatMoney(item.revenue, CURRENCY)}
-              </Text>
-            </View>
-            <StatusBadge status={item.status} />
-            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-          </Pressable>
+          />
         )}
         ListEmptyComponent={
           <EmptyState
@@ -109,10 +111,11 @@ const createStyles = (colors: ThemeColors) =>
     },
     listContent: {
       padding: 20,
+      flexGrow: 1,
     },
     header: {
       gap: 4,
-      marginBottom: 12,
+      marginBottom: 18,
     },
     title: {
       fontFamily: fonts.bold,
@@ -120,32 +123,12 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.ink,
     },
     subtitle: {
+      fontFamily: fonts.body,
       fontSize: 14,
       color: colors.textMuted,
     },
-    row: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 10,
-      paddingVertical: 14,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    rowPressed: {
-      opacity: 0.6,
-    },
-    rowLeft: {
-      flex: 1,
-      gap: 3,
-    },
-    rowTitle: {
-      fontFamily: fonts.semibold,
-      fontSize: 15,
-      color: colors.ink,
-    },
-    rowSubtitle: {
-      fontSize: 13,
-      color: colors.textMuted,
+    separator: {
+      height: 14,
     },
     errorContainer: {
       flex: 1,
