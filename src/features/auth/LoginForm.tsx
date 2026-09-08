@@ -15,12 +15,42 @@ import { fonts } from "@/lib/fonts";
 import type { ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 import { useAuthStore } from "@/store/authStore";
-import type { OtpChannel } from "@/types";
+import { ApiError, type OtpChannel, type UserRole } from "@/types";
 
 interface OtpContext {
   email: string;
   channel: OtpChannel;
   maskedDestination: string;
+}
+
+// Only the roles this app has a real tab/screen for get a "you're in the
+// wrong place, here's the right one" message. A venue/customer/admin
+// account isn't a wrong-tab problem — no tab here would work for it — so
+// it gets the generic unsupported-account message instead of being told to
+// "switch tabs" when no tab actually helps.
+const ROLE_GUIDANCE: Partial<Record<UserRole, string>> = {
+  organizer: "This is an organizer account. Use the Organizer tab to sign in.",
+  usher: "This is an usher account. Use the Usher / Cashier tab and select Usher.",
+  cinema: "This is a cashier account. Use the Usher / Cashier tab and select Cashier.",
+};
+
+/**
+ * Picking a tab/role on the sign-in screen isn't just copy — it's a real
+ * gate. A correctly-authenticated account signing in through the *wrong*
+ * tab (organizer credentials on the Usher/Cashier tab, or vice versa) is
+ * rejected here, before authStore.signIn() is ever called, so no token is
+ * persisted and app/_layout.tsx never gets a chance to route on it. This
+ * doesn't change the actual authorization boundary (the backend still owns
+ * that entirely) — it only stops a person from landing in the wrong role's
+ * screens by picking the wrong tab, which defeats the point of having
+ * separate tabs at all.
+ */
+function assertExpectedRole(actualRole: UserRole, expectedRole?: UserRole) {
+  if (!expectedRole || actualRole === expectedRole) return;
+  throw new ApiError(
+    ROLE_GUIDANCE[actualRole] ?? "This account isn't supported in this app. Contact Pazimo support.",
+    null,
+  );
 }
 
 interface LoginFormProps {
@@ -35,16 +65,19 @@ interface LoginFormProps {
    * directly.
    */
   embedded?: boolean;
+  /** The only role this particular tab/screen accepts — see assertExpectedRole above. */
+  expectedRole?: UserRole;
 }
 
 /**
  * Shared by every role's *-login.tsx screen and the embedded sign-in flow —
  * all are plain email+password against the same POST /api/auth/login, and
- * the backend decides both the account's real role (Stack.Protected routes
- * on that, not on which screen/tab was used) and whether a second factor is
- * required (organizer accounts only, today). Only the copy differs.
+ * the backend decides the account's real role and whether a second factor
+ * is required (organizer accounts only, today). `expectedRole` is enforced
+ * client-side on top of that (see assertExpectedRole) so the tab/screen
+ * copy is never misleading about who actually gets signed in.
  */
-export function LoginForm({ title, subtitle, embedded }: LoginFormProps) {
+export function LoginForm({ title, subtitle, embedded, expectedRole }: LoginFormProps) {
   const [otpContext, setOtpContext] = useState<OtpContext | null>(null);
 
   if (otpContext) {
@@ -53,6 +86,7 @@ export function LoginForm({ title, subtitle, embedded }: LoginFormProps) {
         context={otpContext}
         onBack={() => setOtpContext(null)}
         embedded={embedded}
+        expectedRole={expectedRole}
       />
     );
   }
@@ -62,6 +96,7 @@ export function LoginForm({ title, subtitle, embedded }: LoginFormProps) {
       title={title}
       subtitle={subtitle}
       embedded={embedded}
+      expectedRole={expectedRole}
       onRequiresOtp={setOtpContext}
     />
   );
@@ -71,6 +106,7 @@ function PasswordStep({
   title,
   subtitle,
   embedded,
+  expectedRole,
   onRequiresOtp,
 }: LoginFormProps & { onRequiresOtp: (ctx: OtpContext) => void }) {
   const colors = useColors();
@@ -94,9 +130,16 @@ function PasswordStep({
       setFieldErrors({});
       const res = await login(parsed.data.email, parsed.data.password);
       if (res.requiresOtp) {
+        // requiresOtp only ever fires for role === "organizer" (see
+        // authController.js login()) — so reaching here already tells us
+        // the account's real role, even before OTP is verified. A mismatch
+        // is rejected right away rather than sending an OTP for a sign-in
+        // that's going to be refused anyway.
+        assertExpectedRole("organizer", expectedRole);
         onRequiresOtp(res.data);
         return;
       }
+      assertExpectedRole(res.data.user.role, expectedRole);
       await signIn(res.data.token, res.data.user);
     },
   });
@@ -168,10 +211,12 @@ function VerifyLoginOtp({
   context: initialContext,
   onBack,
   embedded,
+  expectedRole,
 }: {
   context: OtpContext;
   onBack: () => void;
   embedded?: boolean;
+  expectedRole?: UserRole;
 }) {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -189,6 +234,11 @@ function VerifyLoginOtp({
       }
       setCodeError(null);
       const res = await verifyOrganizerOtp(context.email, parsed.data);
+      // Belt-and-suspenders: PasswordStep already rejected a mismatch
+      // before this screen was ever reached (requiresOtp only fires for
+      // organizers), so this can't actually fail today — kept for when
+      // that assumption changes rather than trusted blindly.
+      assertExpectedRole(res.data.user.role, expectedRole);
       await signIn(res.data.token, res.data.user);
     },
   });

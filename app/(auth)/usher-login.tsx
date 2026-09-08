@@ -5,6 +5,7 @@ export default function UsherLoginScreen() {
     <LoginForm
       title="Sign in as Usher"
       subtitle="Scan tickets for the event you've been assigned to"
+      expectedRole="usher"
     />
   );
 }

@@ -7,6 +7,7 @@ import { LoginForm } from "@/features/auth/LoginForm";
 import { fonts } from "@/lib/fonts";
 import type { ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
+import type { UserRole } from "@/types";
 
 type Tab = "organizer" | "staff";
 type StaffRole = "usher" | "cashier";
@@ -37,12 +38,24 @@ export default function WelcomeScreen() {
   const [tab, setTab] = useState<Tab>("organizer");
   const [staffRole, setStaffRole] = useState<StaffRole>("usher");
 
-  const copy =
+  const copy: { title: string; subtitle: string; expectedRole: UserRole } =
     tab === "organizer"
-      ? { title: "Sign in as Organizer", subtitle: "Manage your events and see how they're doing" }
+      ? {
+          title: "Sign in as Organizer",
+          subtitle: "Manage your events and see how they're doing",
+          expectedRole: "organizer",
+        }
       : staffRole === "usher"
-        ? { title: "Sign in as Usher", subtitle: "Scan tickets for the events you're assigned to" }
-        : { title: "Sign in as Cashier", subtitle: "Manage box office sales and concessions for your cinema" };
+        ? {
+            title: "Sign in as Usher",
+            subtitle: "Scan tickets for the events you're assigned to",
+            expectedRole: "usher",
+          }
+        : {
+            title: "Sign in as Cashier",
+            subtitle: "Manage box office sales and concessions for your cinema",
+            expectedRole: "cinema",
+          };
 
   return (
     <Screen>
@@ -77,6 +90,7 @@ export default function WelcomeScreen() {
           key={tab === "organizer" ? "organizer" : staffRole}
           title={copy.title}
           subtitle={copy.subtitle}
+          expectedRole={copy.expectedRole}
           embedded
         />
       </View>

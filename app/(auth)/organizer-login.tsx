@@ -5,6 +5,7 @@ export default function OrganizerLoginScreen() {
     <LoginForm
       title="Sign in as Organizer"
       subtitle="Manage your events and see how they're doing"
+      expectedRole="organizer"
     />
   );
 }
