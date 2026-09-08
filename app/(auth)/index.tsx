@@ -1,13 +1,21 @@
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { Screen } from "@/components/Screen";
 import { LoginForm } from "@/features/auth/LoginForm";
 import { fonts } from "@/lib/fonts";
 import type { ThemeColors } from "@/lib/theme";
-import { useColors } from "@/lib/useColors";
+import { useColors, useResolvedScheme } from "@/lib/useColors";
 import type { UserRole } from "@/types";
+
+const LOGO_LIGHT = require("../../assets/logo-light.png");
+const LOGO_DARK = require("../../assets/logo-dark.png");
+// Natural pixel size of each source asset — needed to derive the right
+// aspectRatio per variant, since the light/dark exports aren't cropped to
+// quite the same proportions.
+const LOGO_RATIO = { light: 3110 / 1034, dark: 3109 / 1183 };
+const WORDMARK_HEIGHT = 120;
 
 type Tab = "organizer" | "staff";
 type StaffRole = "usher" | "cashier";
@@ -35,6 +43,7 @@ const STAFF_ROLES: { value: StaffRole; label: string }[] = [
 export default function WelcomeScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const scheme = useResolvedScheme();
   const [tab, setTab] = useState<Tab>("organizer");
   const [staffRole, setStaffRole] = useState<StaffRole>("usher");
 
@@ -59,7 +68,11 @@ export default function WelcomeScreen() {
 
   return (
     <Screen>
-      <Text style={styles.wordmark}>Pazimo</Text>
+      <Image
+        source={scheme === "dark" ? LOGO_DARK : LOGO_LIGHT}
+        resizeMode="contain"
+        style={[styles.wordmark, { width: WORDMARK_HEIGHT * LOGO_RATIO[scheme] }]}
+      />
       <Text style={styles.tagline}>Sign in to work the show.</Text>
 
       <View style={styles.tabWrap}>
@@ -95,9 +108,9 @@ export default function WelcomeScreen() {
         />
       </View>
 
-      <Text style={styles.footer}>
+      {/* <Text style={styles.footer}>
         Ushers scan tickets only. Cashiers manage their own cinema's box office and bar.
-      </Text>
+      </Text> */}
     </Screen>
   );
 }
@@ -105,10 +118,8 @@ export default function WelcomeScreen() {
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     wordmark: {
-      fontFamily: fonts.bold,
-      fontSize: 34,
-      color: colors.ink,
-      letterSpacing: 0.2,
+      height: WORDMARK_HEIGHT,
+      alignSelf: "center",
       marginTop: 16,
     },
     tagline: {

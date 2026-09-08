@@ -110,6 +110,7 @@ export default function OrganizerBarScreen() {
               value: totals.sellThrough != null ? `${totals.sellThrough}%` : "—",
             },
           ]}
+          variant="brand"
         />
 
         {byBeverage.length > 0 ? (

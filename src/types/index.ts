@@ -526,6 +526,8 @@ export interface ScannedTicketInfo {
   checkedIn: boolean;
   checkedInAt?: string;
   ticketCount?: number;
+  /** Guest-invited (RSVP'd via an Invitation), not self-purchased — see confirmRSVP. */
+  isInvitation?: boolean;
 }
 
 /**

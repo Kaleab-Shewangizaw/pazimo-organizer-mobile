@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation } from "@tanstack/react-query";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import { LinearGradient } from "expo-linear-gradient";
 import { useIsFocused } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
@@ -41,6 +42,20 @@ type ScanState =
 // used directly (not the `useColors()` hook) so it never follows whatever
 // theme the rest of the app is in.
 const colors = darkColors;
+
+// The topBar and hint bubble float directly over the live camera feed,
+// which keeps moving as the usher moves the phone — a translucent
+// background there is unreadable one second and fine the next, depending
+// on whatever's behind it. Solid black-to-gray only (no alpha) so the
+// chrome is legible no matter what the camera is pointed at.
+const CHROME_GRADIENT = ["#242424", "#050505"] as const;
+const CHROME_BORDER = "#404040";
+
+// The invitation review card: solid teal-to-black gradient (never
+// translucent — it sits over the camera the same as the chrome above) with
+// a bright teal border.
+const INVITATION_GRADIENT = ["#155C53", "#031412"] as const;
+const INVITATION_BORDER = "#2DD4BF";
 
 // The backend reports a scanned ticket belonging to a different event than
 // this scanner session in a couple of different wordings, depending on
@@ -191,7 +206,12 @@ export function TicketScanner({
         style={[styles.overlay, tabBarHeight > 0 && { paddingBottom: 20 + tabBarHeight }]}
         pointerEvents="box-none"
       >
-        <View style={styles.topBar}>
+        <LinearGradient
+          colors={CHROME_GRADIENT}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.topBar}
+        >
           {onBack ? (
             <Pressable onPress={onBack} style={styles.backButton}>
               <Ionicons name="chevron-back" size={22} color={colors.ink} />
@@ -200,7 +220,7 @@ export function TicketScanner({
           <Text style={styles.topBarTitle} numberOfLines={1}>
             {title ?? "Scan tickets"}
           </Text>
-        </View>
+        </LinearGradient>
 
         <View style={styles.frame} pointerEvents="none" />
 
@@ -216,15 +236,27 @@ export function TicketScanner({
         ) : state.stage === "result" ? (
           <ResultCard state={state} onScanNext={scanNext} />
         ) : validateMutation.isPending ? (
-          <View style={styles.hint}>
-            <Text style={styles.hintText}>Checking ticket…</Text>
-          </View>
+          <HintBubble>Checking ticket…</HintBubble>
         ) : (
-          <View style={styles.hint}>
-            <Text style={styles.hintText}>Point the camera at a ticket's QR code</Text>
-          </View>
+          <HintBubble>Point the camera at a ticket's QR code</HintBubble>
         )}
       </SafeAreaView>
+    </View>
+  );
+}
+
+/** The bottom hint pill — same solid grayscale chrome as the top bar, for the same reason (floats over the live camera). */
+function HintBubble({ children }: { children: string }) {
+  return (
+    <View style={styles.hint}>
+      <LinearGradient
+        colors={CHROME_GRADIENT}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.hintBubble}
+      >
+        <Text style={styles.hintText}>{children}</Text>
+      </LinearGradient>
     </View>
   );
 }
@@ -279,15 +311,21 @@ function ReviewCard({
 }) {
   const maxCount = Math.max(1, ticket.ticketCount || 1);
   const ticketTypeLabel = ticket.ticketType?.trim() || "Standard";
-  const isGuestTicket = ticketTypeLabel.toLowerCase() === "guest";
+  const isInvitation = ticket.isInvitation === true;
 
-  return (
-    <View style={styles.reviewCard}>
+  const content = (
+    <>
       <Text style={styles.reviewName}>{ticket.userName}</Text>
-      <View style={[styles.ticketTypeBadge, isGuestTicket && styles.ticketTypeBadgeGuest]}>
-        <Text style={[styles.ticketTypeText, isGuestTicket && styles.ticketTypeTextGuest]}>
-          {ticketTypeLabel}
-        </Text>
+      <View style={styles.badgeRow}>
+        <View style={styles.ticketTypeBadge}>
+          <Text style={styles.ticketTypeText}>{ticketTypeLabel}</Text>
+        </View>
+        {isInvitation ? (
+          <View style={styles.invitationBadge}>
+            <Ionicons name="mail-outline" size={12} color={INVITATION_BORDER} />
+            <Text style={styles.invitationBadgeText}>Invitation</Text>
+          </View>
+        ) : null}
       </View>
       <Text style={styles.reviewMeta}>{ticket.eventTitle}</Text>
       <Text style={styles.reviewAdmits}>Admits up to {maxCount}</Text>
@@ -313,8 +351,23 @@ function ReviewCard({
 
       <ScannerButton label={`Check in ${count}`} onPress={onConfirm} loading={loading} />
       <ScannerButton label="Cancel" onPress={onCancel} muted />
-    </View>
+    </>
   );
+
+  if (isInvitation) {
+    return (
+      <LinearGradient
+        colors={INVITATION_GRADIENT}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.reviewCard, styles.reviewCardInvitation]}
+      >
+        {content}
+      </LinearGradient>
+    );
+  }
+
+  return <View style={styles.reviewCard}>{content}</View>;
 }
 
 function ResultCard({
@@ -369,12 +422,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: CHROME_BORDER,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#141414",
+    borderWidth: 1,
+    borderColor: CHROME_BORDER,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -396,14 +456,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingBottom: 12,
   },
+  hintBubble: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: CHROME_BORDER,
+  },
   hintText: {
     color: colors.ink,
     fontSize: 14,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    overflow: "hidden",
   },
   reviewCard: {
     backgroundColor: colors.surface,
@@ -411,6 +473,15 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: "center",
     gap: 4,
+  },
+  // An invitation ticket was RSVP'd into by the guest, not bought — the
+  // usher still checks it in exactly the same way, but it's worth flagging
+  // at a glance (e.g. it won't show up in door revenue). Same idea as
+  // resultWarning/resultMismatch below each getting their own color — solid
+  // (the gradient fill, not this style), no shadow, just its own border.
+  reviewCardInvitation: {
+    borderWidth: 1.5,
+    borderColor: INVITATION_BORDER,
   },
   reviewName: {
     fontFamily: fonts.bold,
@@ -423,26 +494,44 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: "center",
   },
-  ticketTypeBadge: {
+  badgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     marginTop: 2,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: colors.surfaceAlt,
+  },
+  ticketTypeBadge: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: "#2A2A2A",
+    borderWidth: 1,
+    borderColor: "#454545",
   },
   ticketTypeText: {
-    fontSize: 13,
-    fontWeight: "700",
+    fontFamily: fonts.extrabold,
+    fontSize: 15,
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
     color: colors.ink,
   },
-  // A guest ticket isn't a paid seat, so it gets its own color to stand out
-  // at a glance — same idea as resultWarning ("already checked in") and
-  // resultMismatch ("wrong event") below each getting a distinct color.
-  ticketTypeBadgeGuest: {
-    backgroundColor: "rgba(192, 132, 252, 0.18)",
+  invitationBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: "rgba(45, 212, 191, 0.18)",
+    borderWidth: 1,
+    borderColor: INVITATION_BORDER,
   },
-  ticketTypeTextGuest: {
-    color: "#C084FC",
+  invitationBadgeText: {
+    fontFamily: fonts.extrabold,
+    fontSize: 15,
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+    color: INVITATION_BORDER,
   },
   reviewAdmits: {
     fontSize: 13,

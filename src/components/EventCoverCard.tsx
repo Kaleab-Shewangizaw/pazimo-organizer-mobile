@@ -47,7 +47,7 @@ const META_ICON_COLOR = "rgba(255, 255, 255, 0.85)";
 export function EventCoverCard({
   event,
   onPress,
-  showStatus = true,
+  showStatus = false,
   coverHeight,
   children,
 }: EventCoverCardProps) {
