@@ -4,8 +4,8 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getCinemaProfile } from "@/api/cinema";
-import { AppearanceToggle } from "@/components/AppearanceToggle";
 import { Button } from "@/components/Button";
+import { ThemeToggleButton } from "@/components/ThemeToggleButton";
 import { fonts } from "@/lib/fonts";
 import type { ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
@@ -21,7 +21,10 @@ export default function CashierAccountScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Account</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Account</Text>
+          <ThemeToggleButton />
+        </View>
 
         <View style={styles.avatar}>
           <Text style={styles.avatarInitial}>
@@ -37,9 +40,6 @@ export default function CashierAccountScreen() {
           <InfoRow colors={colors} label="Email" value={user?.email ?? "—"} />
           <InfoRow colors={colors} label="Phone" value={user?.phoneNumber ?? "—"} last />
         </View>
-
-        <Text style={styles.sectionLabel}>Appearance</Text>
-        <AppearanceToggle />
 
         <Button label="Sign out" variant="secondary" onPress={signOut} style={styles.signOut} />
       </ScrollView>
@@ -98,12 +98,18 @@ const createStyles = (colors: ThemeColors) =>
       padding: 20,
       alignItems: "center",
     },
+    titleRow: {
+      alignSelf: "stretch",
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+      marginBottom: 20,
+    },
     title: {
-      alignSelf: "flex-start",
       fontFamily: fonts.bold,
       fontSize: 22,
       color: colors.ink,
-      marginBottom: 20,
     },
     avatar: {
       width: 72,
@@ -117,7 +123,7 @@ const createStyles = (colors: ThemeColors) =>
     avatarInitial: {
       fontFamily: fonts.extrabold,
       fontSize: 28,
-      color: colors.accent,
+      color: colors.accentText,
     },
     name: {
       fontFamily: fonts.bold,
@@ -133,15 +139,6 @@ const createStyles = (colors: ThemeColors) =>
     section: {
       alignSelf: "stretch",
       marginBottom: 28,
-    },
-    sectionLabel: {
-      alignSelf: "flex-start",
-      fontSize: 12,
-      fontWeight: "700",
-      letterSpacing: 1.2,
-      textTransform: "uppercase",
-      color: colors.textMuted,
-      marginBottom: 10,
     },
     signOut: {
       alignSelf: "stretch",
