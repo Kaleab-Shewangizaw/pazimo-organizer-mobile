@@ -23,17 +23,6 @@ interface OtpContext {
   maskedDestination: string;
 }
 
-// Only the roles this app has a real tab/screen for get a "you're in the
-// wrong place, here's the right one" message. A venue/customer/admin
-// account isn't a wrong-tab problem — no tab here would work for it — so
-// it gets the generic unsupported-account message instead of being told to
-// "switch tabs" when no tab actually helps.
-const ROLE_GUIDANCE: Partial<Record<UserRole, string>> = {
-  organizer: "This is an organizer account. Use the Organizer tab to sign in.",
-  usher: "This is an usher account. Use the Usher / Cashier tab and select Usher.",
-  cinema: "This is a cashier account. Use the Usher / Cashier tab and select Cashier.",
-};
-
 /**
  * Picking a tab/role on the sign-in screen isn't just copy — it's a real
  * gate. A correctly-authenticated account signing in through the *wrong*
@@ -42,15 +31,16 @@ const ROLE_GUIDANCE: Partial<Record<UserRole, string>> = {
  * persisted and app/_layout.tsx never gets a chance to route on it. This
  * doesn't change the actual authorization boundary (the backend still owns
  * that entirely) — it only stops a person from landing in the wrong role's
- * screens by picking the wrong tab, which defeats the point of having
- * separate tabs at all.
+ * screens by picking the wrong tab.
+ *
+ * Deliberately the same generic message regardless of the account's real
+ * role — never confirms "this email is an organizer account" to whoever's
+ * typing, same reasoning as the backend's own "Invalid credentials" not
+ * distinguishing a wrong password from a nonexistent email.
  */
 function assertExpectedRole(actualRole: UserRole, expectedRole?: UserRole) {
   if (!expectedRole || actualRole === expectedRole) return;
-  throw new ApiError(
-    ROLE_GUIDANCE[actualRole] ?? "This account isn't supported in this app. Contact Pazimo support.",
-    null,
-  );
+  throw new ApiError("Account not found.", null);
 }
 
 interface LoginFormProps {
