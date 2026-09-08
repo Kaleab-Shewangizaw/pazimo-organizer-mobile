@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { getBeverageEligibility, getOrganizerBeverageDashboard } from "@/api/beverages";
 import { getOrganizerDashboard } from "@/api/organizers";
 import { getEventTickets } from "@/api/tickets";
 import { Banner } from "@/components/Banner";
@@ -21,12 +22,13 @@ import { HeroCard } from "@/components/HeroCard";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { ProgressBar } from "@/components/ProgressBar";
 import { StatTile } from "@/components/StatTile";
+import { useTabBarHeight } from "@/components/TabBarHeightProvider";
 import { ThemeToggleButton } from "@/components/ThemeToggleButton";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
 import { resolveMediaUrl } from "@/lib/media";
-import type { ThemeColors } from "@/lib/theme";
+import { accentAlt, cardShadow, type ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 import { useAuthStore } from "@/store/authStore";
 import type { Currency, DashboardEvent, TicketTypeBreakdownRow } from "@/types";
@@ -41,6 +43,7 @@ function isEventLive(event: DashboardEvent, now: Date): boolean {
 export default function OrganizerHomeScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const tabBarHeight = useTabBarHeight();
   const user = useAuthStore((s) => s.user);
   const organizerId = user?._id;
   const [refreshing, setRefreshing] = useState(false);
@@ -61,8 +64,7 @@ export default function OrganizerHomeScreen() {
   const liveEvent = useMemo(() => sortedEvents.find((e) => isEventLive(e, new Date())), [sortedEvents]);
   const otherEvents = sortedEvents.filter((e) => e._id !== liveEvent?._id);
 
-  const defaultSelected = liveEvent?._id ?? sortedEvents[0]?._id ?? "all";
-  const selected = selectedOverride ?? defaultSelected;
+  const selected = selectedOverride ?? "all";
   const allTime = selected === "all";
   const selectedEvent = allTime
     ? undefined
@@ -72,6 +74,22 @@ export default function OrganizerHomeScreen() {
     queryKey: ["event-tickets", selectedEvent?._id, "stats"],
     queryFn: () => getEventTickets(selectedEvent!._id, 1, 1),
     enabled: !allTime && !!selectedEvent,
+  });
+
+  // Same query keys as the Bar tab (src/api/beverages.ts via app/organizer/(tabs)/bar.tsx)
+  // so the cache is shared between the two. Errors (including the eligibility
+  // route 404ing where it hasn't shipped yet) are swallowed on purpose — this
+  // is a nice-to-have second stat tile, not something worth an error banner
+  // on the main dashboard.
+  const eligibilityQuery = useQuery({
+    queryKey: ["beverage-eligibility"],
+    queryFn: getBeverageEligibility,
+  });
+  const isBeverageEligible = eligibilityQuery.data?.data.eligibility === "eligible";
+  const beverageDashboardQuery = useQuery({
+    queryKey: ["beverage-dashboard"],
+    queryFn: getOrganizerBeverageDashboard,
+    enabled: isBeverageEligible,
   });
 
   const onRefresh = useCallback(async () => {
@@ -96,13 +114,12 @@ export default function OrganizerHomeScreen() {
     );
   }
 
-  const { balance, stats } = query.data.data;
+  const { balance } = query.data.data;
 
   const topByRevenue = [...sortedEvents].sort((a, b) => b.revenue - a.revenue).slice(0, 5);
   const maxRevenue = Math.max(1, ...topByRevenue.map((e) => e.revenue));
 
   const allTimeSold = sortedEvents.reduce((a, e) => a + e.ticketStats.total, 0);
-  const allTimeAvgPrice = allTimeSold > 0 ? balance.totalRevenue / allTimeSold : null;
 
   const ticketsSoldValue = allTime
     ? String(allTimeSold)
@@ -112,37 +129,11 @@ export default function OrganizerHomeScreen() {
         : String(selectedEvent.ticketStats.total)
       : "0";
 
-  const avgPrice = allTime
-    ? allTimeAvgPrice
-    : selectedEvent && selectedEvent.ticketStats.total > 0
-      ? selectedEvent.revenue / selectedEvent.ticketStats.total
-      : null;
-
-  let deltaPct: number | null = null;
-  let heroNote: string | undefined;
-  if (allTime) {
-    heroNote = `Across ${stats.totalEvents} event${stats.totalEvents === 1 ? "" : "s"}`;
-  } else if (selectedEvent) {
-    const index = sortedEvents.findIndex((e) => e._id === selectedEvent._id);
-    const previousEvent = sortedEvents[index + 1];
-    deltaPct =
-      previousEvent && previousEvent.revenue > 0
-        ? Math.round(((selectedEvent.revenue - previousEvent.revenue) / previousEvent.revenue) * 100)
-        : null;
-    if (deltaPct === null) heroNote = "No prior event to compare";
-  }
-
-  const heroFooter = allTime
-    ? [
-        { label: "Your revenue", value: formatMoney(balance.organizerRevenue, CURRENCY) },
-        { label: "Platform fee", value: formatMoney(balance.pazimoCommission, CURRENCY) },
-      ]
-    : selectedEvent
-      ? [
-          { label: "Your revenue", value: formatMoney(selectedEvent.organizerRevenue, CURRENCY) },
-          { label: "Platform fee", value: formatMoney(selectedEvent.pazimoCommission, CURRENCY) },
-        ]
-      : undefined;
+  const beverageTotals = beverageDashboardQuery.data?.data;
+  const showDrinks = isBeverageEligible && !!beverageTotals;
+  const drinksSoldValue = allTime
+    ? (beverageTotals?.totals.units ?? 0)
+    : (beverageTotals?.byEvent.find((e) => e._id === selectedEvent?._id)?.units ?? 0);
 
   const tierRows = tierQuery.data?.statistics.ticketTypeBreakdown ?? [];
   const maxTierSold = Math.max(1, ...tierRows.map((r) => r.totalSold));
@@ -150,9 +141,9 @@ export default function OrganizerHomeScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <ScrollView
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: tabBarHeight + 24 }]}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={accentAlt(colors)} />
         }
       >
         <View style={styles.header}>
@@ -174,6 +165,7 @@ export default function OrganizerHomeScreen() {
                 style={styles.chipScroll}
                 contentContainerStyle={styles.chipRow}
               >
+                <Chip label="All time" active={allTime} onPress={() => setSelectedOverride("all")} />
                 {liveEvent ? (
                   <Chip
                     label="Live event"
@@ -190,35 +182,23 @@ export default function OrganizerHomeScreen() {
                     onPress={() => setSelectedOverride(event._id)}
                   />
                 ))}
-                <Chip label="All time" active={allTime} onPress={() => setSelectedOverride("all")} />
               </ScrollView>
 
               <HeroCard
-                eyebrow={allTime ? "All-time revenue" : "Gross revenue"}
-                value={formatMoney(allTime ? balance.totalRevenue : (selectedEvent?.revenue ?? 0), CURRENCY)}
-                deltaPct={deltaPct}
-                note={heroNote}
-                footer={heroFooter}
+                eyebrow="Available balance"
+                value={formatMoney(balance.availableBalance, CURRENCY)}
+                footer={[
+                  { label: "Gross revenue", value: formatMoney(balance.totalRevenue, CURRENCY) },
+                  { label: "Pending payout", value: formatMoney(balance.pendingWithdrawals, CURRENCY) },
+                ]}
+                variant="brand"
               />
 
               <View style={styles.statGrid}>
                 <StatTile label="Tickets sold" value={ticketsSoldValue} accent />
-                <StatTile
-                  label="Avg. ticket price"
-                  value={avgPrice != null ? formatMoney(avgPrice, CURRENCY) : "—"}
-                />
-              </View>
-
-              <View style={styles.statGrid}>
-                <StatTile
-                  label="Available balance"
-                  value={formatMoney(balance.availableBalance, CURRENCY)}
-                  accent
-                />
-                <StatTile
-                  label="Pending payout"
-                  value={formatMoney(balance.pendingWithdrawals, CURRENCY)}
-                />
+                {showDrinks ? (
+                  <StatTile label="Drinks sold" value={String(drinksSoldValue)} />
+                ) : null}
               </View>
 
               {allTime ? (
@@ -284,7 +264,7 @@ export default function OrganizerHomeScreen() {
                     </View>
                   ) : tierQuery.isPending ? (
                     <View style={styles.tierLoadingRow}>
-                      <ActivityIndicator color={colors.accent} />
+                      <ActivityIndicator color={accentAlt(colors)} />
                       <Text style={styles.tierLoadingText}>Loading ticket tiers…</Text>
                     </View>
                   ) : null}
@@ -436,8 +416,7 @@ const createStyles = (colors: ThemeColors) =>
     revenueCard: {
       backgroundColor: colors.surface,
       borderRadius: 20,
-      borderWidth: 1,
-      borderColor: colors.border,
+      boxShadow: cardShadow(colors),
       padding: 20,
     },
     revenueTitle: {
@@ -494,8 +473,7 @@ const createStyles = (colors: ThemeColors) =>
     card: {
       backgroundColor: colors.surface,
       borderRadius: 20,
-      borderWidth: 1,
-      borderColor: colors.border,
+      boxShadow: cardShadow(colors),
       padding: 20,
       gap: 14,
     },
