@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -7,13 +8,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { getMyUsherEvents } from "@/api/ushers";
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
+import { Chip } from "@/components/Chip";
 import { EmptyState } from "@/components/EmptyState";
 import { EventCoverCard } from "@/components/EventCoverCard";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { useTabBarHeight } from "@/components/TabBarHeightProvider";
 
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
-import type { ThemeColors } from "@/lib/theme";
+import { accentAlt, type ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 
 /**
@@ -27,6 +30,7 @@ import { useColors } from "@/lib/useColors";
 export default function UsherEventScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const tabBarHeight = useTabBarHeight();
   const [refreshing, setRefreshing] = useState(false);
 
   const eventsQuery = useQuery({
@@ -61,37 +65,37 @@ export default function UsherEventScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: tabBarHeight + 24 }]}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={accentAlt(colors)} />
         }
       >
-        <Text style={styles.title}>Your event</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.title}>Your event</Text>
+          {current ? (
+            <Chip
+              label="Switch event"
+              active={false}
+              onPress={() => router.push("/usher/unlock")}
+              icon={<Ionicons name="swap-horizontal-outline" size={14} color={colors.textMuted} />}
+            />
+          ) : null}
+        </View>
 
         {current ? (
-          <>
-            <EventCoverCard event={current.event}>
-              <View style={styles.scanButtonWrap}>
-                <Button
-                  label="Scan tickets"
-                  onPress={() =>
-                    router.push({
-                      pathname: "/usher/scanner/[eventId]",
-                      params: { eventId: current.event._id, title: current.event.title },
-                    })
-                  }
-                />
-              </View>
-            </EventCoverCard>
-
-            <Text
-              style={styles.switchLink}
-              onPress={() => router.push("/usher/unlock")}
-              accessibilityRole="link"
-            >
-              Switch to a different event
-            </Text>
-          </>
+          <EventCoverCard event={current.event} coverHeight={320}>
+            <View style={styles.scanButtonWrap}>
+              <Button
+                label="Scan tickets"
+                onPress={() =>
+                  router.push({
+                    pathname: "/usher/scanner/[eventId]",
+                    params: { eventId: current.event._id, title: current.event.title },
+                  })
+                }
+              />
+            </View>
+          </EventCoverCard>
         ) : (
           <>
             <EmptyState
@@ -117,20 +121,20 @@ const createStyles = (colors: ThemeColors) =>
       gap: 16,
       flexGrow: 1,
     },
+    headerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+    },
     title: {
       fontFamily: fonts.bold,
       fontSize: 22,
       color: colors.ink,
     },
     scanButtonWrap: {
-      padding: 16,
-      paddingTop: 14,
-    },
-    switchLink: {
-      alignSelf: "center",
-      fontSize: 14,
-      fontWeight: "600",
-      color: colors.textMuted,
+      padding: 20,
+      paddingTop: 16,
     },
     errorContainer: {
       flex: 1,
