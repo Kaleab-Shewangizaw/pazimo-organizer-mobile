@@ -66,8 +66,8 @@ export default function OrganizerBarScreen() {
           <Text style={styles.screenTitle}>Bar</Text>
         </View>
         <EmptyState
-          title="Not enabled for your account yet"
-          body="Selling drinks at your events needs to be turned on by a Pazimo admin first. Reach out to Pazimo support to get set up."
+          title="COMING SOON!"
+          body="The bar feature is coming soon. Please check back later."
         />
       </SafeAreaView>
     );
