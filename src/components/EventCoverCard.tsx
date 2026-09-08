@@ -9,7 +9,7 @@ import { StubDivider } from "@/components/StubDivider";
 import { fonts } from "@/lib/fonts";
 import { formatEventDateRange } from "@/lib/format";
 import { resolveMediaUrl } from "@/lib/media";
-import type { ThemeColors } from "@/lib/theme";
+import { cardShadow, type ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 import type { EventStatus } from "@/types";
 
@@ -29,6 +29,8 @@ interface EventCoverCardProps {
   onPress?: () => void;
   /** Hide the publish-status badge — e.g. the organizer's Tickets tab, where every listed event is already relevant regardless of status. */
   showStatus?: boolean;
+  /** Cover photo height — defaults to the list-card size. Pass something taller for a single-event hero use (e.g. the usher's "Your event" screen). */
+  coverHeight?: number;
   /** Rendered below the ticket-stub tear line, on the card's own surface — sold/checked-in/revenue metrics for the organizer's EventCard, a "Scan tickets" button for the usher's. Omitted entirely (no divider either) when there's nothing to show there. */
   children?: ReactNode;
 }
@@ -42,7 +44,13 @@ const META_ICON_COLOR = "rgba(255, 255, 255, 0.85)";
  * Shared by the organizer's EventCard and the usher's current-event card so
  * both roles get the same photo treatment instead of each hand-rolling it.
  */
-export function EventCoverCard({ event, onPress, showStatus = true, children }: EventCoverCardProps) {
+export function EventCoverCard({
+  event,
+  onPress,
+  showStatus = true,
+  coverHeight,
+  children,
+}: EventCoverCardProps) {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const cover = resolveMediaUrl(event.coverImages?.[0]);
@@ -58,56 +66,58 @@ export function EventCoverCard({ event, onPress, showStatus = true, children }: 
           : styles.card
       }
     >
-      <View style={styles.cover}>
-        {cover ? (
-          <Image source={{ uri: cover }} style={StyleSheet.absoluteFill} />
-        ) : (
-          <View style={[StyleSheet.absoluteFill, styles.coverFallback]}>
-            <Text style={styles.coverInitial}>{event.title.charAt(0).toUpperCase()}</Text>
-          </View>
-        )}
-
-        <LinearGradient
-          colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.15)", "rgba(0,0,0,0.75)"]}
-          locations={[0, 0.45, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-
-        {showStatus ? (
-          <View style={styles.statusPill}>
-            {/* <StatusBadge status={event.status} /> */}
-          </View>
-        ) : null}
-
-        <View style={styles.coverText}>
-          <Text style={styles.title} numberOfLines={1}>
-            {event.title}
-          </Text>
-          <View style={styles.metaRow}>
-            <View style={styles.metaItem}>
-              <Ionicons name="calendar-outline" size={12} color={META_ICON_COLOR} />
-              <Text style={styles.metaText} numberOfLines={1}>
-                {dateLabel}
-              </Text>
+      <View style={styles.clip}>
+        <View style={[styles.cover, coverHeight ? { height: coverHeight } : null]}>
+          {cover ? (
+            <Image source={{ uri: cover }} style={StyleSheet.absoluteFill} />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, styles.coverFallback]}>
+              <Text style={styles.coverInitial}>{event.title.charAt(0).toUpperCase()}</Text>
             </View>
-            {event.location?.city ? (
+          )}
+
+          <LinearGradient
+            colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.15)", "rgba(0,0,0,0.75)"]}
+            locations={[0, 0.45, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+
+          {showStatus ? (
+            <View style={styles.statusPill}>
+              <StatusBadge status={event.status} />
+            </View>
+          ) : null}
+
+          <View style={styles.coverText}>
+            <Text style={styles.title} numberOfLines={1}>
+              {event.title}
+            </Text>
+            <View style={styles.metaRow}>
               <View style={styles.metaItem}>
-                <Ionicons name="location-outline" size={12} color={META_ICON_COLOR} />
+                <Ionicons name="calendar-outline" size={12} color={META_ICON_COLOR} />
                 <Text style={styles.metaText} numberOfLines={1}>
-                  {event.location.city}
+                  {dateLabel}
                 </Text>
               </View>
-            ) : null}
+              {event.location?.city ? (
+                <View style={styles.metaItem}>
+                  <Ionicons name="location-outline" size={12} color={META_ICON_COLOR} />
+                  <Text style={styles.metaText} numberOfLines={1}>
+                    {event.location.city}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
           </View>
         </View>
-      </View>
 
-      {children ? (
-        <>
-          <StubDivider background={colors.surface} />
-          {children}
-        </>
-      ) : null}
+        {children ? (
+          <>
+            <StubDivider background={colors.surface} />
+            {children}
+          </>
+        ) : null}
+      </View>
     </Wrapper>
   );
 }
@@ -115,10 +125,15 @@ export function EventCoverCard({ event, onPress, showStatus = true, children }: 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     card: {
+      borderRadius: 16,
+      boxShadow: cardShadow(colors),
+    },
+    // Separate from `card` because a box-shadow gets clipped by whatever
+    // view casts it if that same view also has `overflow: hidden` — and
+    // this needs overflow hidden to round off the cover photo's corners.
+    clip: {
       backgroundColor: colors.surface,
       borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.border,
       overflow: "hidden",
     },
     pressed: {

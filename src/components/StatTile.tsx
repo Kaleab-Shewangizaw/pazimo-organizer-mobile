@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { fonts } from "@/lib/fonts";
-import type { ThemeColors } from "@/lib/theme";
+import { cardShadow, type ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 
 interface StatTileProps {
@@ -36,8 +36,7 @@ const createStyles = (colors: ThemeColors) =>
       minWidth: "45%",
       backgroundColor: colors.surface,
       borderRadius: 14,
-      borderWidth: 1,
-      borderColor: colors.border,
+      boxShadow: cardShadow(colors),
       paddingVertical: 14,
       paddingHorizontal: 14,
       gap: 2,

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { fonts } from "@/lib/fonts";
-import type { ThemeColors } from "@/lib/theme";
+import { isDarkTheme, type ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 
 interface SegmentedControlProps<T extends string> {
@@ -58,11 +58,17 @@ const createStyles = (colors: ThemeColors) =>
     },
     segmentActive: {
       backgroundColor: colors.surface,
-      shadowColor: "#000",
-      shadowOpacity: 0.08,
-      shadowRadius: 4,
-      shadowOffset: { width: 0, height: 1 },
-      elevation: 1,
+      // Light mode only — see `cardShadow` in lib/theme for why dark mode
+      // skips shadows entirely instead of trying to tint one.
+      ...(isDarkTheme(colors)
+        ? null
+        : {
+            shadowColor: "#000",
+            shadowOpacity: 0.08,
+            shadowRadius: 4,
+            shadowOffset: { width: 0, height: 1 },
+            elevation: 1,
+          }),
     },
     label: {
       fontFamily: fonts.bodyMedium,

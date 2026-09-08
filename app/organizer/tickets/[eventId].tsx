@@ -16,7 +16,7 @@ import { TextField } from "@/components/TextField";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
-import type { ThemeColors } from "@/lib/theme";
+import { accentAlt, cardShadow, type ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 import type { OrganizerTicket, TicketStatus } from "@/types";
 
@@ -200,7 +200,7 @@ export default function EventTicketsScreen() {
         ListEmptyComponent={
           !ticketsRevealed ? null : listQuery.isPending ? (
             <View style={styles.loadingRow}>
-              <ActivityIndicator color={colors.accent} />
+              <ActivityIndicator color={accentAlt(colors)} />
               <Text style={styles.loadingText}>Loading buyers…</Text>
             </View>
           ) : listQuery.isError ? null : (
@@ -284,8 +284,7 @@ const createStyles = (colors: ThemeColors) =>
       flexGrow: 1,
       backgroundColor: colors.surface,
       borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.border,
+      boxShadow: cardShadow(colors),
       padding: 14,
       gap: 4,
     },
