@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -9,10 +8,10 @@ import { getMyUsherEvents } from "@/api/ushers";
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
+import { EventCoverCard } from "@/components/EventCoverCard";
 import { LoadingScreen } from "@/components/LoadingScreen";
 
 import { bannerMessageFor } from "@/lib/errors";
-import { formatEventDateRange } from "@/lib/format";
 import { fonts } from "@/lib/fonts";
 import type { ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
@@ -71,29 +70,19 @@ export default function UsherEventScreen() {
 
         {current ? (
           <>
-            <View style={styles.card}>
-              <View style={styles.cardTop}>
-                <Text style={styles.cardTitle} numberOfLines={2}>
-                  {current.event.title}
-                </Text>
-               
+            <EventCoverCard event={current.event}>
+              <View style={styles.scanButtonWrap}>
+                <Button
+                  label="Scan tickets"
+                  onPress={() =>
+                    router.push({
+                      pathname: "/usher/scanner/[eventId]",
+                      params: { eventId: current.event._id, title: current.event.title },
+                    })
+                  }
+                />
               </View>
-              <Text style={styles.cardDate}>
-                {formatEventDateRange(current.event.startDate, current.event.endDate)}
-                {current.event.location?.city ? ` · ${current.event.location.city}` : ""}
-              </Text>
-
-              <Button
-                label="Scan tickets"
-                onPress={() =>
-                  router.push({
-                    pathname: "/usher/scanner/[eventId]",
-                    params: { eventId: current.event._id, title: current.event.title },
-                  })
-                }
-                style={styles.scanButton}
-              />
-            </View>
+            </EventCoverCard>
 
             <Text
               style={styles.switchLink}
@@ -133,32 +122,9 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 22,
       color: colors.ink,
     },
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 18,
-      borderWidth: 1,
-      borderColor: colors.border,
-      padding: 20,
-      gap: 8,
-    },
-    cardTop: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "flex-start",
-      gap: 8,
-    },
-    cardTitle: {
-      fontFamily: fonts.bold,
-      fontSize: 19,
-      color: colors.ink,
-      flexShrink: 1,
-    },
-    cardDate: {
-      fontSize: 14,
-      color: colors.textMuted,
-    },
-    scanButton: {
-      marginTop: 12,
+    scanButtonWrap: {
+      padding: 16,
+      paddingTop: 14,
     },
     switchLink: {
       alignSelf: "center",
