@@ -16,6 +16,7 @@ import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
 import type { ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
+import { ApiError } from "@/types";
 
 const CURRENCY = "ETB" as const;
 
@@ -30,6 +31,12 @@ export default function OrganizerBarScreen() {
 
   const isEligible = eligibilityQuery.data?.data.eligibility === "eligible";
 
+  // The eligibility route hasn't shipped on the backend yet — treat a 404
+  // here as "not eligible" instead of a real error so the tab still shows
+  // the gate screen instead of an error banner.
+  const eligibilityRouteMissing =
+    eligibilityQuery.error instanceof ApiError && eligibilityQuery.error.httpStatus === 404;
+
   const dashboardQuery = useQuery({
     queryKey: ["beverage-dashboard"],
     queryFn: getOrganizerBeverageDashboard,
@@ -40,7 +47,7 @@ export default function OrganizerBarScreen() {
     return <LoadingScreen />;
   }
 
-  if (eligibilityQuery.isError) {
+  if (eligibilityQuery.isError && !eligibilityRouteMissing) {
     const message = bannerMessageFor(eligibilityQuery.error) ?? "Couldn't load the bar.";
     return (
       <SafeAreaView style={styles.safeArea}>
