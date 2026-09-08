@@ -1,56 +1,50 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 
-import { useColors } from "@/lib/useColors";
+import { TabBar } from "@/components/TabBar";
+import { TabBarHeightProvider } from "@/components/TabBarHeightProvider";
 
 export default function CashierTabsLayout() {
-  const colors = useColors();
-
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.ink,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Dashboard",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="grid-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="tickets"
-        options={{
-          title: "Tickets",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="ticket-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="bar"
-        options={{
-          title: "Bar",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="wine-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="account"
-        options={{
-          title: "Account",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
-          ),
-        }}
-      />
-    </Tabs>
+    <TabBarHeightProvider>
+      <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} />}>
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: "Dashboard",
+            tabBarIcon: ({ focused, color, size }) => (
+              <Ionicons name={focused ? "grid" : "grid-outline"} size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="tickets"
+          options={{
+            title: "Tickets",
+            tabBarIcon: ({ focused, color, size }) => (
+              <Ionicons name={focused ? "ticket" : "ticket-outline"} size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="bar"
+          options={{
+            title: "Bar",
+            tabBarIcon: ({ focused, color, size }) => (
+              <Ionicons name={focused ? "wine" : "wine-outline"} size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="account"
+          options={{
+            title: "Account",
+            tabBarIcon: ({ focused, color, size }) => (
+              <Ionicons name={focused ? "person" : "person-outline"} size={size} color={color} />
+            ),
+          }}
+        />
+      </Tabs>
+    </TabBarHeightProvider>
   );
 }

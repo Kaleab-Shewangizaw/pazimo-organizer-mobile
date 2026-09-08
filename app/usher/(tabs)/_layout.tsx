@@ -1,47 +1,41 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 
-import { useColors } from "@/lib/useColors";
+import { TabBar } from "@/components/TabBar";
+import { TabBarHeightProvider } from "@/components/TabBarHeightProvider";
 
 export default function UsherTabsLayout() {
-  const colors = useColors();
-
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.ink,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Events",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calendar-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="scan"
-        options={{
-          title: "Scan",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="scan-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="account"
-        options={{
-          title: "Account",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
-          ),
-        }}
-      />
-    </Tabs>
+    <TabBarHeightProvider>
+      <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} />}>
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: "Events",
+            tabBarIcon: ({ focused, color, size }) => (
+              <Ionicons name={focused ? "calendar" : "calendar-outline"} size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="scan"
+          options={{
+            title: "Scan",
+            tabBarIcon: ({ focused, color, size }) => (
+              <Ionicons name={focused ? "scan" : "scan-outline"} size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="account"
+          options={{
+            title: "Account",
+            tabBarIcon: ({ focused, color, size }) => (
+              <Ionicons name={focused ? "person" : "person-outline"} size={size} color={color} />
+            ),
+          }}
+        />
+      </Tabs>
+    </TabBarHeightProvider>
   );
 }
