@@ -23,7 +23,7 @@ export function StatTile({ label, value, accent }: StatTileProps) {
 
   return (
     <View style={styles.tile}>
-      <Text style={[styles.value, accent && { color: colors.accent }]}>{value}</Text>
+      <Text style={[styles.value, accent && { color: colors.accentText }]}>{value}</Text>
       <Text style={styles.label}>{label}</Text>
     </View>
   );

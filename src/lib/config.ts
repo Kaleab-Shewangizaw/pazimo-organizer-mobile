@@ -19,4 +19,7 @@ if (!__DEV__ && API_URL.startsWith("http://") && !isLocalhost) {
 
 export const config = {
   apiUrl: API_URL.replace(/\/+$/, ""),
+  // The backend serves uploaded media (e.g. /uploads/...) from its origin,
+  // not under the /api prefix — see src/lib/media.ts.
+  mediaOrigin: new URL(API_URL).origin,
 };

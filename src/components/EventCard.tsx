@@ -1,10 +1,8 @@
-import { useMemo } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
-import { StatusBadge } from "@/components/StatusBadge";
-import { StubDivider } from "@/components/StubDivider";
+import { EventCoverCard } from "@/components/EventCoverCard";
 import { fonts } from "@/lib/fonts";
-import { formatEventDateRange, formatMoney } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import type { ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 import type { Currency, DashboardEvent } from "@/types";
@@ -13,47 +11,27 @@ interface EventCardProps {
   event: DashboardEvent;
   currency: Currency;
   onPress?: () => void;
+  /** Hide the publish-status badge — e.g. the Tickets tab, where every listed event is already relevant regardless of status. */
+  showStatus?: boolean;
 }
 
-export function EventCard({ event, currency, onPress }: EventCardProps) {
+/**
+ * Organizer's event card: the shared EventCoverCard (cover photo, gradient
+ * scrim, title/date/location, status badge, ticket-stub tear line) with
+ * sold/checked-in/revenue metrics below it — the financial detail that's
+ * specific to the organizer's view.
+ */
+export function EventCard({ event, currency, onPress, showStatus = true }: EventCardProps) {
   const colors = useColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  const cover = event.coverImages?.[0];
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
-    >
-      {cover ? (
-        <Image source={{ uri: cover }} style={styles.cover} />
-      ) : (
-        <View style={[styles.cover, styles.coverFallback]}>
-          <Text style={styles.coverInitial}>{event.title.charAt(0).toUpperCase()}</Text>
-        </View>
-      )}
-
-      <View style={styles.top}>
-        <View style={styles.titleRow}>
-          <Text style={styles.title} numberOfLines={1}>
-            {event.title}
-          </Text>
-          <StatusBadge status={event.status} />
-        </View>
-        <Text style={styles.date}>
-          {formatEventDateRange(event.startDate, event.endDate)}
-          {event.location?.city ? ` · ${event.location.city}` : ""}
-        </Text>
-      </View>
-
-      <StubDivider background={colors.surface} />
-
+    <EventCoverCard event={event} onPress={onPress} showStatus={showStatus}>
       <View style={styles.metricsRow}>
         <Metric label="Sold" value={String(event.ticketStats.total)} colors={colors} />
         <Metric label="Checked in" value={String(event.ticketStats.used)} colors={colors} />
         <Metric label="Revenue" value={formatMoney(event.revenue, currency)} colors={colors} />
       </View>
-    </Pressable>
+    </EventCoverCard>
   );
 }
 
@@ -68,57 +46,11 @@ function Metric({ label, value, colors }: { label: string; value: string; colors
   );
 }
 
-const createStyles = (colors: ThemeColors) =>
-  StyleSheet.create({
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: colors.border,
-      overflow: "hidden",
-    },
-    pressed: {
-      opacity: 0.85,
-    },
-    cover: {
-      width: "100%",
-      height: 108,
-    },
-    coverFallback: {
-      backgroundColor: colors.surfaceAlt,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    coverInitial: {
-      fontFamily: fonts.extrabold,
-      fontSize: 32,
-      color: colors.textMuted,
-    },
-    top: {
-      padding: 16,
-      paddingBottom: 14,
-      gap: 6,
-    },
-    titleRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      gap: 8,
-    },
-    title: {
-      fontFamily: fonts.bold,
-      fontSize: 16,
-      color: colors.ink,
-      flexShrink: 1,
-    },
-    date: {
-      fontSize: 13,
-      color: colors.textMuted,
-    },
-    metricsRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      padding: 16,
-      paddingTop: 14,
-    },
-  });
+const styles = StyleSheet.create({
+  metricsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 16,
+    paddingTop: 14,
+  },
+});

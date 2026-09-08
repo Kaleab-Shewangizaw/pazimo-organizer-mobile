@@ -13,6 +13,17 @@
  * other token pair stays purposeful. Dark mode here keeps the same vivid
  * gold as light mode; it reads fine (plenty of contrast) against the dark
  * surfaces and keeps the accent meaningful in both modes.
+ *
+ * Dark mode is true black (#000000), not the reference's navy-tinted slate
+ * — explicitly requested over the slate/blue cast that reads as "dark gray"
+ * rather than "dark". Surfaces are neutral near-blacks (no hue), text is
+ * neutral white/gray (no slate blue), so nothing in the theme carries a
+ * blue tint except the gold accent itself.
+ *
+ * `accent` (#F1C035) is ~1.7:1 against white — fine for a fill, dot, or
+ * border, but fails as text on a light surface. `accentText` is the same
+ * gold hue darkened to ~5:1 for that use; in dark mode it's identical to
+ * `accent`, which already has plenty of contrast against near-black.
  */
 export interface ThemeColors {
   background: string;
@@ -23,6 +34,8 @@ export interface ThemeColors {
   textMuted: string;
   accent: string;
   accentSoft: string;
+  /** Use for gold-colored *text* (a revenue figure, an initial) — never plain `accent`, which isn't readable on a light surface. */
+  accentText: string;
   buttonPrimaryBg: string;
   buttonPrimaryText: string;
   /** A translucent version of buttonPrimaryText, for a hairline divider drawn on top of a HeroCard (which is filled buttonPrimaryBg). */
@@ -45,6 +58,7 @@ export const lightColors: ThemeColors = {
   textMuted: "#686C73",
   accent: "#F1C035",
   accentSoft: "rgba(241, 192, 53, 0.16)",
+  accentText: "#8A6508",
   buttonPrimaryBg: "#14181F",
   buttonPrimaryText: "#FDFCF9",
   heroDivider: "rgba(255, 255, 255, 0.15)",
@@ -58,16 +72,17 @@ export const lightColors: ThemeColors = {
 };
 
 export const darkColors: ThemeColors = {
-  background: "#020618",
-  surface: "#0F172B",
-  surfaceAlt: "#1D293D",
+  background: "#000000",
+  surface: "#121212",
+  surfaceAlt: "#1C1C1C",
   border: "rgba(255, 255, 255, 0.1)",
-  ink: "#F8FAFC",
-  textMuted: "#90A1B9",
+  ink: "#FAFAFA",
+  textMuted: "#9E9E9E",
   accent: "#F1C035",
   accentSoft: "rgba(241, 192, 53, 0.16)",
-  buttonPrimaryBg: "#E2E8F0",
-  buttonPrimaryText: "#0F172B",
+  accentText: "#F1C035",
+  buttonPrimaryBg: "#FAFAFA",
+  buttonPrimaryText: "#101010",
   heroDivider: "rgba(0, 0, 0, 0.15)",
   success: "#3FB171",
   successBg: "rgba(63, 177, 113, 0.16)",
