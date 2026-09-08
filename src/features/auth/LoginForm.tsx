@@ -26,28 +26,51 @@ interface OtpContext {
 interface LoginFormProps {
   title: string;
   subtitle: string;
+  /**
+   * When true, renders just the form fields — no Screen wrapper, no
+   * title/subtitle header — so a parent screen can compose it inline below
+   * its own chrome (the sign-in screen's Organizer/Staff tabs). Defaults to
+   * false for organizer-login.tsx/usher-login.tsx/cashier-login.tsx, which
+   * still work as standalone full screens if something links to them
+   * directly.
+   */
+  embedded?: boolean;
 }
 
 /**
- * Shared by every role's *-login.tsx screen — all are plain email+password
- * against the same POST /api/auth/login, and the backend decides both the
- * account's real role (Stack.Protected routes on that, not on which screen
- * was used) and whether a second factor is required (organizer accounts
- * only, today). Only the copy differs per screen.
+ * Shared by every role's *-login.tsx screen and the embedded sign-in flow —
+ * all are plain email+password against the same POST /api/auth/login, and
+ * the backend decides both the account's real role (Stack.Protected routes
+ * on that, not on which screen/tab was used) and whether a second factor is
+ * required (organizer accounts only, today). Only the copy differs.
  */
-export function LoginForm({ title, subtitle }: LoginFormProps) {
+export function LoginForm({ title, subtitle, embedded }: LoginFormProps) {
   const [otpContext, setOtpContext] = useState<OtpContext | null>(null);
 
   if (otpContext) {
-    return <VerifyLoginOtp context={otpContext} onBack={() => setOtpContext(null)} />;
+    return (
+      <VerifyLoginOtp
+        context={otpContext}
+        onBack={() => setOtpContext(null)}
+        embedded={embedded}
+      />
+    );
   }
 
-  return <PasswordStep title={title} subtitle={subtitle} onRequiresOtp={setOtpContext} />;
+  return (
+    <PasswordStep
+      title={title}
+      subtitle={subtitle}
+      embedded={embedded}
+      onRequiresOtp={setOtpContext}
+    />
+  );
 }
 
 function PasswordStep({
   title,
   subtitle,
+  embedded,
   onRequiresOtp,
 }: LoginFormProps & { onRequiresOtp: (ctx: OtpContext) => void }) {
   const colors = useColors();
@@ -80,6 +103,47 @@ function PasswordStep({
 
   const topLevelError = mutation.isError ? bannerMessageFor(mutation.error) : null;
 
+  const formContent = (
+    <View style={styles.form}>
+      {topLevelError ? <Banner kind="error" message={topLevelError} /> : null}
+
+      <TextField
+        label="Email"
+        value={email}
+        onChangeText={setEmail}
+        error={fieldErrors.email}
+        autoCapitalize="none"
+        autoComplete="email"
+        keyboardType="email-address"
+        placeholder="you@example.com"
+      />
+      <TextField
+        label="Password"
+        value={password}
+        onChangeText={setPassword}
+        error={fieldErrors.password}
+        secureTextEntry
+        autoComplete="password"
+        placeholder="••••••••"
+      />
+
+      <Button
+        label="Sign in"
+        onPress={() => mutation.mutate()}
+        loading={mutation.isPending}
+        style={styles.submit}
+      />
+
+      <Link href="/forgot-password" style={styles.forgotLink}>
+        Forgot password?
+      </Link>
+    </View>
+  );
+
+  if (embedded) {
+    return formContent;
+  }
+
   return (
     <Screen>
       <View style={styles.header}>
@@ -87,40 +151,7 @@ function PasswordStep({
         <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
 
-      <View style={styles.form}>
-        {topLevelError ? <Banner kind="error" message={topLevelError} /> : null}
-
-        <TextField
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          error={fieldErrors.email}
-          autoCapitalize="none"
-          autoComplete="email"
-          keyboardType="email-address"
-          placeholder="you@example.com"
-        />
-        <TextField
-          label="Password"
-          value={password}
-          onChangeText={setPassword}
-          error={fieldErrors.password}
-          secureTextEntry
-          autoComplete="password"
-          placeholder="••••••••"
-        />
-
-        <Button
-          label="Sign in"
-          onPress={() => mutation.mutate()}
-          loading={mutation.isPending}
-          style={styles.submit}
-        />
-
-        <Link href="/forgot-password" style={styles.forgotLink}>
-          Forgot password?
-        </Link>
-      </View>
+      {formContent}
     </Screen>
   );
 }
@@ -136,9 +167,11 @@ function PasswordStep({
 function VerifyLoginOtp({
   context: initialContext,
   onBack,
+  embedded,
 }: {
   context: OtpContext;
   onBack: () => void;
+  embedded?: boolean;
 }) {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -181,6 +214,61 @@ function VerifyLoginOtp({
   const resendError = resendMutation.isError ? bannerMessageFor(resendMutation.error) : null;
   const emailError = emailMutation.isError ? bannerMessageFor(emailMutation.error) : null;
 
+  const formContent = (
+    <View style={styles.form}>
+      {embedded ? (
+        <View style={styles.inlineOtpHeader}>
+          <Text style={styles.title}>Enter your code</Text>
+          <Text style={styles.subtitle}>
+            We sent a 6-digit code to {context.maskedDestination}.
+          </Text>
+        </View>
+      ) : null}
+
+      {verifyError ? <Banner kind="error" message={verifyError} /> : null}
+      {resendError ? <Banner kind="error" message={resendError} /> : null}
+      {emailError ? <Banner kind="error" message={emailError} /> : null}
+      {(resendMutation.isSuccess || emailMutation.isSuccess) ? (
+        <Banner kind="success" message="A new code was sent." />
+      ) : null}
+
+      <View style={styles.otpWrap}>
+        <OtpInput value={code} onChange={setCode} autoFocus />
+        {codeError ? <Text style={styles.otpError}>{codeError}</Text> : null}
+      </View>
+
+      <Button
+        label="Verify & sign in"
+        onPress={() => verifyMutation.mutate()}
+        loading={verifyMutation.isPending}
+      />
+      <Button
+        label="Resend code"
+        variant="secondary"
+        onPress={() => resendMutation.mutate()}
+        loading={resendMutation.isPending}
+      />
+      {context.channel !== "email" ? (
+        <Button
+          label="Email me a code instead"
+          variant="secondary"
+          onPress={() => emailMutation.mutate()}
+          loading={emailMutation.isPending}
+        />
+      ) : null}
+
+      {embedded ? (
+        <Text style={styles.backLink} onPress={onBack} accessibilityRole="link">
+          ‹ Back to sign in
+        </Text>
+      ) : null}
+    </View>
+  );
+
+  if (embedded) {
+    return formContent;
+  }
+
   return (
     <Screen>
       <View style={styles.header}>
@@ -190,39 +278,7 @@ function VerifyLoginOtp({
         </Text>
       </View>
 
-      <View style={styles.form}>
-        {verifyError ? <Banner kind="error" message={verifyError} /> : null}
-        {resendError ? <Banner kind="error" message={resendError} /> : null}
-        {emailError ? <Banner kind="error" message={emailError} /> : null}
-        {(resendMutation.isSuccess || emailMutation.isSuccess) ? (
-          <Banner kind="success" message="A new code was sent." />
-        ) : null}
-
-        <View style={styles.otpWrap}>
-          <OtpInput value={code} onChange={setCode} autoFocus />
-          {codeError ? <Text style={styles.otpError}>{codeError}</Text> : null}
-        </View>
-
-        <Button
-          label="Verify & sign in"
-          onPress={() => verifyMutation.mutate()}
-          loading={verifyMutation.isPending}
-        />
-        <Button
-          label="Resend code"
-          variant="secondary"
-          onPress={() => resendMutation.mutate()}
-          loading={resendMutation.isPending}
-        />
-        {context.channel !== "email" ? (
-          <Button
-            label="Email me a code instead"
-            variant="secondary"
-            onPress={() => emailMutation.mutate()}
-            loading={emailMutation.isPending}
-          />
-        ) : null}
-      </View>
+      {formContent}
 
       <View style={styles.footer}>
         <Text style={styles.footerText} onPress={onBack} accessibilityRole="link">
@@ -247,12 +303,18 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.ink,
     },
     subtitle: {
+      fontFamily: fonts.body,
       fontSize: 15,
       color: colors.textMuted,
       textAlign: "center",
     },
     form: {
       gap: 16,
+    },
+    inlineOtpHeader: {
+      alignItems: "center",
+      gap: 6,
+      marginBottom: 4,
     },
     submit: {
       marginTop: 8,
@@ -271,6 +333,12 @@ const createStyles = (colors: ThemeColors) =>
     otpError: {
       fontSize: 13,
       color: colors.error,
+    },
+    backLink: {
+      color: colors.textMuted,
+      fontSize: 14,
+      textAlign: "center",
+      marginTop: 8,
     },
     footer: {
       flexDirection: "row",

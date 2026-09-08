@@ -1,82 +1,101 @@
-import { Ionicons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
-import { router } from "expo-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
 
+import { SegmentedControl } from "@/components/SegmentedControl";
+import { Screen } from "@/components/Screen";
+import { LoginForm } from "@/features/auth/LoginForm";
 import { fonts } from "@/lib/fonts";
 import type { ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 
-const ROLES = [
-  { icon: "briefcase-outline", title: "Organizer", href: "/organizer-login" },
-  { icon: "qr-code-outline", title: "Usher", href: "/usher-login" },
-  { icon: "storefront-outline", title: "Cashier", href: "/cashier-login" },
-] as const;
+type Tab = "organizer" | "staff";
+type StaffRole = "usher" | "cashier";
+
+const TAB_OPTIONS: { value: Tab; label: string }[] = [
+  { value: "organizer", label: "Organizer" },
+  { value: "staff", label: "Usher / Cashier" },
+];
+
+const STAFF_ROLES: { value: StaffRole; label: string }[] = [
+  { value: "usher", label: "Usher" },
+  { value: "cashier", label: "Cashier" },
+];
 
 /**
- * Role is always resolved server-side (GET /api/auth/me / the login
- * response) — this screen never grants access, it only decides which
- * login copy/screen a person taps. All three lead to the same
- * email+password form (LoginForm) against the same POST /api/auth/login;
- * the backend alone decides the account's real role and where
+ * Matches the reference's structure exactly (tab switcher, inline form,
+ * footer disclaimer pinned to the bottom) — but wired to this app's real
+ * auth, not the reference's fictional phone-only/staff-ID fields. Every
+ * path here is the same LoginForm (email + password against
+ * POST /api/auth/login) embedded inline; the Organizer/Usher/Cashier
+ * selection only changes which copy is shown, never what's sent — the
+ * backend alone decides the account's real role and where
  * app/_layout.tsx routes it afterwards.
  */
 export default function WelcomeScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const [tab, setTab] = useState<Tab>("organizer");
+  const [staffRole, setStaffRole] = useState<StaffRole>("usher");
+
+  const copy =
+    tab === "organizer"
+      ? { title: "Sign in as Organizer", subtitle: "Manage your events and see how they're doing" }
+      : staffRole === "usher"
+        ? { title: "Sign in as Usher", subtitle: "Scan tickets for the events you're assigned to" }
+        : { title: "Sign in as Cashier", subtitle: "Manage box office sales and concessions for your cinema" };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.content}>
-        <Animated.View entering={FadeIn.duration(500)}>
-          <Text style={styles.wordmark}>Pazimo</Text>
-          <Text style={styles.tagline}>Sign in to work the show.</Text>
-        </Animated.View>
+    <Screen>
+      <Text style={styles.wordmark}>Pazimo</Text>
+      <Text style={styles.tagline}>Sign in to work the show.</Text>
 
-        <Animated.View entering={FadeInDown.delay(150).duration(450)} style={styles.roleRow}>
-          {ROLES.map((role) => (
-            <Pressable
-              key={role.title}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-                router.push(role.href);
-              }}
-              style={({ pressed }) => [styles.role, pressed && styles.rolePressed]}
-            >
-              <Ionicons name={role.icon} size={22} color={colors.accent} />
-              <Text style={styles.roleLabel}>{role.title}</Text>
-            </Pressable>
-          ))}
-        </Animated.View>
-
-        <Text style={styles.footer}>
-          Ushers scan tickets only. Cashiers manage their own cinema's box office and bar.
-        </Text>
+      <View style={styles.tabWrap}>
+        <SegmentedControl options={TAB_OPTIONS} value={tab} onChange={setTab} />
       </View>
-    </SafeAreaView>
+
+      {tab === "staff" ? (
+        <View style={styles.staffRoleRow}>
+          {STAFF_ROLES.map((role) => {
+            const active = role.value === staffRole;
+            return (
+              <Pressable
+                key={role.value}
+                onPress={() => setStaffRole(role.value)}
+                style={[styles.staffRolePill, active && styles.staffRolePillActive]}
+              >
+                <Text style={[styles.staffRoleLabel, active && styles.staffRoleLabelActive]}>
+                  {role.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+
+      <View style={styles.formWrap}>
+        <LoginForm
+          key={tab === "organizer" ? "organizer" : staffRole}
+          title={copy.title}
+          subtitle={copy.subtitle}
+          embedded
+        />
+      </View>
+
+      <Text style={styles.footer}>
+        Ushers scan tickets only. Cashiers manage their own cinema's box office and bar.
+      </Text>
+    </Screen>
   );
 }
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    safeArea: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    content: {
-      flex: 1,
-      paddingHorizontal: 24,
-      paddingTop: 72,
-      paddingBottom: 28,
-    },
     wordmark: {
       fontFamily: fonts.bold,
       fontSize: 34,
       color: colors.ink,
       letterSpacing: 0.2,
+      marginTop: 16,
     },
     tagline: {
       fontFamily: fonts.body,
@@ -84,32 +103,41 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textMuted,
       marginTop: 6,
     },
-    roleRow: {
+    tabWrap: {
+      marginTop: 28,
+    },
+    staffRoleRow: {
       flexDirection: "row",
       gap: 8,
-      marginTop: 32,
+      marginTop: 16,
     },
-    role: {
+    staffRolePill: {
       flex: 1,
       alignItems: "center",
-      gap: 8,
-      borderRadius: 18,
+      paddingVertical: 14,
+      borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.border,
       backgroundColor: colors.surface,
-      paddingVertical: 18,
-      paddingHorizontal: 8,
     },
-    rolePressed: {
-      opacity: 0.7,
+    staffRolePillActive: {
+      borderColor: colors.ink,
+      backgroundColor: colors.surfaceAlt,
     },
-    roleLabel: {
+    staffRoleLabel: {
       fontFamily: fonts.bodyMedium,
-      fontSize: 13,
+      fontSize: 14,
+      color: colors.textMuted,
+    },
+    staffRoleLabelActive: {
       color: colors.ink,
+    },
+    formWrap: {
+      marginTop: 20,
     },
     footer: {
       marginTop: "auto",
+      paddingTop: 24,
       fontFamily: fonts.body,
       fontSize: 11,
       lineHeight: 16,
