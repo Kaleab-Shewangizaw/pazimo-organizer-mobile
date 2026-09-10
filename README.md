@@ -196,15 +196,44 @@ npm run web          # expo start --web
 
 ## Production builds
 
-This project hasn't been configured for EAS Build yet. When it is:
+`EXPO_PUBLIC_API_URL` for production is set explicitly per-profile in
+`eas.json` (`https://pazimo.com/api`), which EAS Build reads directly — no
+extra setup needed for cloud builds.
 
-```bash
-npx eas build --platform android --profile production
-npx eas build --platform ios --profile production
+For a local release build, create a `.env.production` (gitignored, same as
+`.env` — see `.env.example`) with:
+
+```
+EXPO_PUBLIC_API_URL=https://pazimo.com/api
 ```
 
-Set `EXPO_PUBLIC_API_URL` to the production HTTPS backend URL in that EAS
-build profile — never commit it.
+It's loaded automatically by any local build that bundles with
+`NODE_ENV=production`.
+
+### EAS Build (cloud)
+
+```bash
+npx eas build --platform android --profile preview     # signed, installable .apk for testing
+npx eas build --platform android --profile production  # .aab for Play Store submission
+```
+
+EAS manages the Android signing keystore for you (created automatically on
+first build). The project is linked via `extra.eas.projectId` in `app.json`.
+
+### Local build (no EAS account needed)
+
+```bash
+npx expo prebuild --platform android   # (re)generates the android/ folder — gitignored, safe to delete/regenerate
+cd android
+./gradlew assembleRelease              # -> android/app/build/outputs/apk/release/app-release.apk
+```
+
+This is release-optimized but signed with the Android debug key (see the
+`release` signing config in `android/app/build.gradle`), so it installs fine
+for sideloading/testing but **is not suitable for a Play Store upload** —
+generate and wire up a real release keystore first if you need that
+(https://reactnative.dev/docs/signed-apk-android), or just use the EAS
+`production` profile above, which handles signing for you.
 
 ## Authentication architecture
 
@@ -439,11 +468,13 @@ several.
   QR won't scan (damaged code, printed ticket) —
   `PATCH /api/tickets/:ticketId/check-in { count, scopeEventId }` already
   supports it; only the UI is missing.
-- Real brand assets. `assets/icon.png` / `assets/splash-icon.png` are still
-  Expo's default template art — there is no actual Pazimo logomark in this
-  repo. The splash screen and sign-in screen are intentionally
-  typographic-only (a "Pazimo" wordmark, matching the rest of this design
-  system) until real art exists to drop in.
+- `assets/splash-icon.png` is still Expo's default template art and isn't
+  currently referenced by `app.json` (the splash screen uses
+  `logo-light.png`/`logo-dark.png` instead) — the app icon
+  (`assets/icon.png` and the `android-icon-*.png` adaptive-icon layers) now
+  uses the real Pazimo "P" wordmark. The splash screen and sign-in screen are
+  intentionally typographic-only (a "Pazimo" wordmark, matching the rest of
+  this design system).
 - Wire up sign-up phone verification once it has a backend-checked path;
   until then, don't present the current sign-up OTP step as real
   verification to end users.
@@ -452,7 +483,10 @@ several.
 - Event detail screen (tap an event card) — `GET /api/events/:id` has
   everything beyond what the dashboard's list view already shows.
 - A currency toggle (ETB/USD) on the dashboard, if organizers need it.
-- Add EAS Build configuration when it's time to produce real app binaries.
+- Generate a real release keystore for Android (the local `assembleRelease`
+  build currently signs with the debug key — fine for sideloading, not for a
+  Play Store upload). Not needed for EAS Build's `production` profile, which
+  manages signing itself.
 
 ## GitHub
 
