@@ -18,6 +18,7 @@ export default function AuthLayout() {
       <Stack.Screen name="organizer-login" options={{ title: "" }} />
       <Stack.Screen name="usher-login" options={{ title: "" }} />
       <Stack.Screen name="cashier-login" options={{ title: "" }} />
+      <Stack.Screen name="verify-otp" options={{ title: "" }} />
       <Stack.Screen
         name="forgot-password"
         options={{ title: "Reset password" }}
