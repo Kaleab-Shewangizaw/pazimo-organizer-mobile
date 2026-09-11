@@ -13,6 +13,7 @@ import { ListRow } from "@/components/ListRow";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { StatTile } from "@/components/StatTile";
 import { TextField } from "@/components/TextField";
+import { UsherCodeSheet } from "@/components/UsherCodeSheet";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
@@ -54,6 +55,7 @@ export default function EventTicketsScreen() {
   }>();
   const [search, setSearch] = useState("");
   const [ticketsRevealed, setTicketsRevealed] = useState(false);
+  const [usherCodeOpen, setUsherCodeOpen] = useState(false);
 
   const statsQuery = useQuery({
     queryKey: ["event-tickets", eventId, "stats"],
@@ -107,7 +109,22 @@ export default function EventTicketsScreen() {
         <Text style={styles.topBarTitle} numberOfLines={1}>
           {title ?? "Ticket sales"}
         </Text>
+        <Pressable
+          onPress={() => setUsherCodeOpen(true)}
+          hitSlop={12}
+          style={styles.usherCodeButton}
+          accessibilityRole="button"
+          accessibilityLabel="Usher code"
+        >
+          <Ionicons name="key-outline" size={20} color={colors.ink} />
+        </Pressable>
       </View>
+
+      <UsherCodeSheet
+        eventId={eventId}
+        visible={usherCodeOpen}
+        onClose={() => setUsherCodeOpen(false)}
+      />
 
       <FlatList<OrganizerTicket>
         data={ticketsRevealed ? filtered : []}
@@ -239,6 +256,14 @@ const createStyles = (colors: ThemeColors) =>
       fontFamily: fonts.bold,
       fontSize: 17,
       color: colors.ink,
+    },
+    usherCodeButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.surfaceAlt,
     },
     listContent: {
       padding: 20,

@@ -24,9 +24,11 @@ import { DarkTheme as RNDarkTheme, DefaultTheme as RNDefaultTheme } from "expo-r
  * blue tint except the gold accent itself.
  *
  * `accent` (#F1C035) is ~1.7:1 against white — fine for a fill, dot, or
- * border, but fails as text on a light surface. `accentText` is the same
- * gold hue darkened to ~5:1 for that use; in dark mode it's identical to
- * `accent`, which already has plenty of contrast against near-black.
+ * border, but fails as text on a light surface. `accentText` covers that:
+ * Pazimo's own site blue in light mode (readable at ~8:1, and matches
+ * `accentAlt`'s light-mode value — see below), unchanged as gold in dark
+ * mode, where `accent` itself already has plenty of contrast against
+ * near-black.
  */
 export interface ThemeColors {
   background: string;
@@ -37,7 +39,13 @@ export interface ThemeColors {
   textMuted: string;
   accent: string;
   accentSoft: string;
-  /** Use for gold-colored *text* (a revenue figure, an initial) — never plain `accent`, which isn't readable on a light surface. */
+  /**
+   * The app's one highlight color for text (a revenue figure, an initial,
+   * a stepper count) — never plain `accent`, which isn't readable on a
+   * light surface. Blue in light mode (the same blue as `accentAlt`'s
+   * light-mode value); still gold in dark mode, where the warm accent
+   * reads fine against near-black.
+   */
   accentText: string;
   buttonPrimaryBg: string;
   buttonPrimaryText: string;
@@ -52,6 +60,12 @@ export interface ThemeColors {
   overlay: string;
 }
 
+// Pazimo's own site blue (the `--primary` token in pazimo/frontend's
+// globals.css) — light mode's `accentText` and `accentAlt` both resolve to
+// this exact value, so there's one blue, not two coincidentally-matching
+// hexes.
+const blueAccentLight = "#0D47A1";
+
 export const lightColors: ThemeColors = {
   background: "#FCFBF9",
   surface: "#FFFFFF",
@@ -61,7 +75,7 @@ export const lightColors: ThemeColors = {
   textMuted: "#686C73",
   accent: "#F1C035",
   accentSoft: "rgba(241, 192, 53, 0.16)",
-  accentText: "#8A6508",
+  accentText: blueAccentLight,
   buttonPrimaryBg: "#14181F",
   buttonPrimaryText: "#FDFCF9",
   heroDivider: "rgba(255, 255, 255, 0.15)",
@@ -124,7 +138,7 @@ export function isDarkTheme(colors: ThemeColors): boolean {
  * flesh tone.
  */
 export function accentAlt(colors: ThemeColors): string {
-  return isDarkTheme(colors) ? "#FFFFFF" : "#0D47A1";
+  return isDarkTheme(colors) ? "#FFFFFF" : blueAccentLight;
 }
 
 /**

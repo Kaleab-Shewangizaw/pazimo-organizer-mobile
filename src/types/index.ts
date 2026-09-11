@@ -504,6 +504,29 @@ export interface UnlockEventResponse {
   data: { event: UsherEventGrant["event"]; grantedAt: string };
 }
 
+/** One usher currently holding a live grant, as returned alongside the code below. */
+export interface EventUsherAccessGrant {
+  accessId: string;
+  usher: { firstName: string; lastName: string; email: string; phoneNumber: string };
+  grantedAt: string;
+}
+
+/** GET /api/ushers/events/:eventId/code */
+export interface EventUsherAccessResponse {
+  status: "success";
+  data: {
+    code: string | null;
+    codeUpdatedAt: string | null;
+    ushers: EventUsherAccessGrant[];
+  };
+}
+
+/** POST /api/ushers/events/:eventId/code — (re)generates the event's code. */
+export interface GenerateEventUsherCodeResponse {
+  status: "success";
+  data: { code: string };
+}
+
 /**
  * The flat ticket summary POST /api/tickets/validate-qr returns — read
  * directly off `backend/src/controllers/ticketController.js`'s

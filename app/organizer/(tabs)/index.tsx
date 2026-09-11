@@ -168,7 +168,7 @@ export default function OrganizerHomeScreen() {
                 <Chip label="All time" active={allTime} onPress={() => setSelectedOverride("all")} />
                 {liveEvent ? (
                   <Chip
-                    label="Live event"
+                    label={liveEvent.title}
                     active={selected === liveEvent._id}
                     onPress={() => setSelectedOverride(liveEvent._id)}
                     icon={<View style={styles.liveDot} />}
