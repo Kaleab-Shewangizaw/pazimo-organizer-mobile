@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { cancelEventHappyHour, listEventHappyHours, startEventHappyHour } from "@/api/beverages";
+import { getOrganizerDashboard } from "@/api/organizers";
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
@@ -16,6 +17,7 @@ import { formatCountdown, formatMoney } from "@/lib/format";
 import { cardShadow, type ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 import { useCountdownTo } from "@/lib/useCountdownTo";
+import { useAuthStore } from "@/store/authStore";
 import type { HappyHourCampaign, HappyHourState } from "@/types";
 
 const CURRENCY = "ETB" as const;
@@ -25,19 +27,38 @@ function isLive(state: HappyHourState | undefined) {
 }
 
 /**
- * Per-event happy-hour control panel — reached from the key-icon-style
- * button in the event tickets screen's header. Lists every campaign ever
- * created for this event (backend never deletes one, only cancels — see
- * models/HappyHour.js), each with its live countdown and Start/Cancel
- * actions. Polls while anything is still scheduled or active, since a
- * campaign's status is derived from wall-clock time on the server and only
- * catches up to it on the next fetch.
+ * Per-event happy-hour control panel — reached from the event picker off
+ * the Bar tab's wine-glass icon. Lists every campaign ever created for this
+ * event (backend never deletes one, only cancels — see models/HappyHour.js),
+ * each with its live countdown and Start/Cancel actions. Polls while
+ * anything is still scheduled or active, since a campaign's status is
+ * derived from wall-clock time on the server and only catches up to it on
+ * the next fetch.
  */
 export default function HappyHourScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const queryClient = useQueryClient();
-  const { eventId, eventTitle } = useLocalSearchParams<{ eventId: string; eventTitle?: string }>();
+  const organizerId = useAuthStore((s) => s.user?._id);
+  const { eventId, eventTitle, eventEndDate } = useLocalSearchParams<{
+    eventId: string;
+    eventTitle?: string;
+    eventEndDate?: string;
+  }>();
+  // Threaded param used immediately (no loading flicker); confirmed/refreshed
+  // against the same organizer-dashboard query the Bar tab and event picker
+  // already use (normally cache-hit) once it lands. See new.tsx's identical
+  // comment for why this isn't threading-only.
+  const eventsQuery = useQuery({
+    queryKey: ["organizer-dashboard", organizerId, CURRENCY],
+    queryFn: () => getOrganizerDashboard(organizerId as string, CURRENCY),
+    enabled: !!organizerId,
+  });
+  const fetchedEndDate = eventsQuery.data?.data.events.find((e) => e._id === eventId)?.endDate;
+  const eventEnd = useMemo(() => {
+    const raw = fetchedEndDate ?? eventEndDate;
+    return raw ? new Date(raw) : null;
+  }, [fetchedEndDate, eventEndDate]);
 
   const query = useQuery({
     queryKey: ["happy-hours", eventId],
@@ -86,7 +107,7 @@ export default function HappyHourScreen() {
             onPress={() =>
               router.push({
                 pathname: "/organizer/happy-hour/[eventId]/new",
-                params: { eventId, eventTitle: eventTitle ?? "" },
+                params: { eventId, eventTitle: eventTitle ?? "", eventEndDate: eventEndDate ?? "" },
               })
             }
           />
@@ -103,6 +124,7 @@ export default function HappyHourScreen() {
                   key={campaign._id}
                   colors={colors}
                   campaign={campaign}
+                  eventEnd={eventEnd}
                   onStart={() => startMutation.mutate(campaign._id)}
                   onCancel={() => cancelMutation.mutate(campaign._id)}
                   isStarting={startMutation.isPending && startMutation.variables === campaign._id}
@@ -138,6 +160,7 @@ const STATE_META: Record<
 function HappyHourCard({
   colors,
   campaign,
+  eventEnd,
   onStart,
   onCancel,
   isStarting,
@@ -145,6 +168,7 @@ function HappyHourCard({
 }: {
   colors: ThemeColors;
   campaign: HappyHourCampaign;
+  eventEnd: Date | null;
   onStart: () => void;
   onCancel: () => void;
   isStarting: boolean;
@@ -158,7 +182,13 @@ function HappyHourCard({
     state.status === "active" ? state.endsAt : state.status === "scheduled" ? state.startsAt : null;
   const remainingMs = useCountdownTo(countdownTarget);
 
-  const canStart = campaign.startMode === "manual" && !campaign.startedAt && !campaign.cancelledAt;
+  const notStartedYet = campaign.startMode === "manual" && !campaign.startedAt && !campaign.cancelledAt;
+  // A manual campaign can sit un-started for a while — the event may have
+  // moved on since it was created, so this checks against "now" (when the
+  // organizer would actually press it), not against creation time.
+  const wouldOutlastEvent =
+    notStartedYet && eventEnd != null && Date.now() + campaign.durationMinutes * 60000 > eventEnd.getTime();
+  const canStart = notStartedYet && !wouldOutlastEvent;
   const canCancel = state.status === "active" || state.status === "scheduled";
 
   let timingLine: string;
@@ -203,6 +233,13 @@ function HappyHourCard({
           </View>
         ))}
       </View>
+
+      {wouldOutlastEvent ? (
+        <Text style={styles.blockedNote}>
+          The event ends before this {campaign.durationMinutes}-minute happy hour would — it can't be
+          started now.
+        </Text>
+      ) : null}
 
       {canStart || canCancel ? (
         <View style={styles.actionRow}>
@@ -296,6 +333,11 @@ const cardStyles = (colors: ThemeColors) =>
       fontFamily: fonts.semibold,
       fontSize: 14,
       color: colors.success,
+    },
+    blockedNote: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: colors.error,
     },
     actionRow: {
       flexDirection: "row",

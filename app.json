@@ -47,8 +47,7 @@
             "image": "./assets/logo-dark.png"
           }
         }
-      ],
-      "@react-native-community/datetimepicker"
+      ]
     ],
     "experiments": {
       "typedRoutes": true

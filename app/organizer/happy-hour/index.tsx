@@ -24,12 +24,14 @@ const CURRENCY = "ETB" as const;
 
 /**
  * Pick which event to run happy hour for — reached from the wine-glass icon
- * on the Bar tab's header. Only events that are still worth running one on:
- * not sold out (tickets), and currently selling at least one drink that
- * isn't itself out of stock. There's no single backend endpoint for that —
- * listBeverageEvents (beverageFinanceController.js) is admin-only — so this
- * cross-checks each not-sold-out event's own line-up (GET .../beverages,
- * already used by the creation screen) rather than one new bulk endpoint.
+ * on the Bar tab's header. A sold-out event is still fine (happy hour is
+ * about drinks, not tickets) — but an *ended* one isn't, since a happy hour
+ * can't outlive its own event. Also needs at least one drink currently in
+ * stock and available to sell. There's no single backend endpoint for
+ * that — listBeverageEvents (beverageFinanceController.js) is admin-only —
+ * so this cross-checks each not-yet-ended event's own line-up (GET
+ * .../beverages, already used by the creation screen) rather than one new
+ * bulk endpoint.
  */
 export default function HappyHourEventPickerScreen() {
   const colors = useColors();
@@ -42,24 +44,25 @@ export default function HappyHourEventPickerScreen() {
     enabled: !!organizerId,
   });
 
-  const notSoldOut = (eventsQuery.data?.data.events ?? []).filter(
-    (e) => !(e.capacity && e.ticketStats.total >= e.capacity),
+  const now = Date.now();
+  const notEnded = (eventsQuery.data?.data.events ?? []).filter(
+    (e) => new Date(e.endDate).getTime() > now,
   );
 
   const lineupQueries = useQueries({
-    queries: notSoldOut.map((event) => ({
+    queries: notEnded.map((event) => ({
       queryKey: ["event-beverage-lineup", event._id],
       queryFn: () => getEventBeverageLineup(event._id),
     })),
   });
   const lineupsLoading = lineupQueries.some((q) => q.isPending);
 
-  const sellingEvents: DashboardEvent[] = notSoldOut.filter((_, index) => {
+  const sellingEvents: DashboardEvent[] = notEnded.filter((_, index) => {
     const rows = lineupQueries[index]?.data?.data ?? [];
     return rows.some((row) => row.isAvailable && row.remaining > 0 && !row.unavailableReason);
   });
 
-  const isLoading = eventsQuery.isPending || (notSoldOut.length > 0 && lineupsLoading);
+  const isLoading = eventsQuery.isPending || (notEnded.length > 0 && lineupsLoading);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
@@ -87,7 +90,7 @@ export default function HappyHourEventPickerScreen() {
           {sellingEvents.length === 0 ? (
             <EmptyState
               title="No eligible events"
-              body="An event needs drinks currently in stock and available to sell — and not be sold out — to run a happy hour."
+              body="An event needs drinks currently in stock and available to sell, and not have ended yet, to run a happy hour."
             />
           ) : (
             <View style={styles.list}>
@@ -99,7 +102,11 @@ export default function HappyHourEventPickerScreen() {
                     onPress={() =>
                       router.push({
                         pathname: "/organizer/happy-hour/[eventId]",
-                        params: { eventId: event._id, eventTitle: event.title },
+                        params: {
+                          eventId: event._id,
+                          eventTitle: event.title,
+                          eventEndDate: event.endDate,
+                        },
                       })
                     }
                     style={styles.row}

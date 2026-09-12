@@ -1,15 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
-import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { createEventHappyHour, getEventBeverageLineup, type CreateHappyHourInput } from "@/api/beverages";
+import { getOrganizerDashboard } from "@/api/organizers";
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
+import { HappyHourStartPicker } from "@/components/HappyHourStartPicker";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { TextField } from "@/components/TextField";
@@ -19,6 +20,7 @@ import { formatMoney } from "@/lib/format";
 import { resolveMediaUrl } from "@/lib/media";
 import { cardShadow, type ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
+import { useAuthStore } from "@/store/authStore";
 import type { EventBeverageRow } from "@/types";
 
 const CURRENCY = "ETB" as const;
@@ -37,14 +39,36 @@ export default function NewHappyHourScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const queryClient = useQueryClient();
-  const { eventId, eventTitle } = useLocalSearchParams<{ eventId: string; eventTitle?: string }>();
+  const { eventId, eventTitle, eventEndDate } = useLocalSearchParams<{
+    eventId: string;
+    eventTitle?: string;
+    eventEndDate?: string;
+  }>();
+  // A happy hour can never be scheduled to start, or made to run, past its
+  // own event's end. The picker/control screen already thread the event's
+  // endDate through as a param (used immediately, no loading flicker), but
+  // this also fetches it directly (same organizer-dashboard query the Bar
+  // tab and event picker already use, so normally cache-hit) as the
+  // authoritative source once it lands — the param is a fast, secondary
+  // path, not the only one.
+  const organizerId = useAuthStore((s) => s.user?._id);
+  const eventsQuery = useQuery({
+    queryKey: ["organizer-dashboard", organizerId, CURRENCY],
+    queryFn: () => getOrganizerDashboard(organizerId as string, CURRENCY),
+    enabled: !!organizerId,
+  });
+  const fetchedEndDate = eventsQuery.data?.data.events.find((e) => e._id === eventId)?.endDate;
+  const eventEnd = useMemo(() => {
+    const raw = fetchedEndDate ?? eventEndDate;
+    return raw ? new Date(raw) : null;
+  }, [fetchedEndDate, eventEndDate]);
 
   const [selected, setSelected] = useState<Record<string, string>>({}); // eventBeverageId -> price input text
   const [durationChoice, setDurationChoice] = useState<DurationChoice>(30);
   const [customDuration, setCustomDuration] = useState("");
   const [startChoice, setStartChoice] = useState<StartChoice>("manual");
   const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
-  const [showIosPicker, setShowIosPicker] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   const lineupQuery = useQuery({
@@ -70,32 +94,6 @@ export default function NewHappyHourScreen() {
       }
       return next;
     });
-  }
-
-  function openScheduledPicker() {
-    const initial = scheduledAt ?? new Date(Date.now() + 5 * 60000);
-    if (Platform.OS === "android") {
-      DateTimePickerAndroid.open({
-        value: initial,
-        mode: "date",
-        minimumDate: new Date(),
-        onChange: (event, pickedDate) => {
-          if (event.type !== "set" || !pickedDate) return;
-          DateTimePickerAndroid.open({
-            value: pickedDate,
-            mode: "time",
-            onChange: (timeEvent, pickedTime) => {
-              if (timeEvent.type !== "set" || !pickedTime) return;
-              const combined = new Date(pickedDate);
-              combined.setHours(pickedTime.getHours(), pickedTime.getMinutes(), 0, 0);
-              setScheduledAt(combined);
-            },
-          });
-        },
-      });
-    } else {
-      setShowIosPicker(true);
-    }
   }
 
   function submit(rows: EventBeverageRow[]) {
@@ -127,8 +125,19 @@ export default function NewHappyHourScreen() {
     }
 
     if (startChoice === "scheduled") {
-      if (!scheduledAt || scheduledAt.getTime() <= Date.now()) {
+      if (!scheduledAt) {
+        setFormError("Pick a start time");
+        return;
+      }
+      if (scheduledAt.getTime() <= Date.now()) {
         setFormError("Pick a start time in the future");
+        return;
+      }
+      // A happy hour can't outlast its own event — the picker already
+      // caps the *start* at the event's end, but the start + duration
+      // together can still run past it.
+      if (eventEnd && scheduledAt.getTime() + durationMinutes * 60000 > eventEnd.getTime()) {
+        setFormError("This happy hour would still be running after the event ends — shorten the duration or pick an earlier start.");
         return;
       }
     }
@@ -254,25 +263,12 @@ export default function NewHappyHourScreen() {
                     onChange={setStartChoice}
                   />
                   {startChoice === "scheduled" ? (
-                    <>
-                      <Pressable onPress={openScheduledPicker} style={styles.scheduleButton}>
-                        <Ionicons name="calendar-outline" size={18} color={colors.ink} />
-                        <Text style={styles.scheduleButtonText}>
-                          {scheduledAt ? scheduledAt.toLocaleString() : "Pick a start time"}
-                        </Text>
-                      </Pressable>
-                      {Platform.OS === "ios" && showIosPicker ? (
-                        <DateTimePicker
-                          value={scheduledAt ?? new Date(Date.now() + 5 * 60000)}
-                          mode="datetime"
-                          minimumDate={new Date()}
-                          onChange={(event, pickedDate) => {
-                            setShowIosPicker(false);
-                            if (event.type === "set" && pickedDate) setScheduledAt(pickedDate);
-                          }}
-                        />
-                      ) : null}
-                    </>
+                    <Pressable onPress={() => setPickerOpen(true)} style={styles.scheduleButton}>
+                      <Ionicons name="calendar-outline" size={18} color={colors.ink} />
+                      <Text style={styles.scheduleButtonText}>
+                        {scheduledAt ? scheduledAt.toLocaleString() : "Pick a start time"}
+                      </Text>
+                    </Pressable>
                   ) : (
                     <Text style={styles.helperText}>
                       You'll start it yourself with the "Start now" button.
@@ -298,6 +294,18 @@ export default function NewHappyHourScreen() {
           );
         })()
       )}
+
+      <HappyHourStartPicker
+        visible={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onConfirm={(date) => {
+          setScheduledAt(date);
+          setPickerOpen(false);
+        }}
+        minDate={new Date()}
+        maxDate={eventEnd ?? new Date(Date.now() + 7 * 24 * 60 * 60000)}
+        initialDate={scheduledAt}
+      />
     </SafeAreaView>
   );
 }
