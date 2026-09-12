@@ -15,6 +15,7 @@ import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatEventDateRange } from "@/lib/format";
 import { resolveMediaUrl } from "@/lib/media";
+import { goBack } from "@/lib/navigation";
 import { cardShadow, type ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 import { useAuthStore } from "@/store/authStore";
@@ -67,7 +68,7 @@ export default function HappyHourEventPickerScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
+        <Pressable onPress={() => goBack("/organizer/bar")} hitSlop={12}>
           <Ionicons name="chevron-back" size={24} color={colors.ink} />
         </Pressable>
         <Text style={styles.topBarTitle}>Happy hour</Text>

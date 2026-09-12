@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -10,6 +9,7 @@ import { CodeInput } from "@/components/CodeInput";
 import { Screen } from "@/components/Screen";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
+import { goBack } from "@/lib/navigation";
 import type { ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 
@@ -23,7 +23,7 @@ export default function UnlockEventScreen() {
     mutationFn: () => unlockUsherEvent(code),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["usher-my-events"] });
-      router.back();
+      goBack("/usher");
     },
   });
 
@@ -49,7 +49,7 @@ export default function UnlockEventScreen() {
           loading={mutation.isPending}
           disabled={code.length < 6}
         />
-        <Text style={styles.back} onPress={() => router.back()} accessibilityRole="link">
+        <Text style={styles.back} onPress={() => goBack("/usher")} accessibilityRole="link">
           ‹ Back
         </Text>
       </View>

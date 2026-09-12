@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { router } from "expo-router";
 import { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -14,6 +13,7 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
+import { goBack } from "@/lib/navigation";
 import { cardShadow, type ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 
@@ -53,7 +53,7 @@ export default function BarByEventScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
+        <Pressable onPress={() => goBack("/organizer/bar")} hitSlop={12}>
           <Ionicons name="chevron-back" size={24} color={colors.ink} />
         </Pressable>
         <Text style={styles.topBarTitle}>By event</Text>

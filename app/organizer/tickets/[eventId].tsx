@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -17,6 +17,7 @@ import { UsherCodeSheet } from "@/components/UsherCodeSheet";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
+import { goBack } from "@/lib/navigation";
 import { accentAlt, cardShadow, type ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 import type { OrganizerTicket, TicketStatus } from "@/types";
@@ -103,7 +104,7 @@ export default function EventTicketsScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
+        <Pressable onPress={() => goBack("/organizer/tickets")} hitSlop={12}>
           <Ionicons name="chevron-back" size={24} color={colors.ink} />
         </Pressable>
         <Text style={styles.topBarTitle} numberOfLines={1}>

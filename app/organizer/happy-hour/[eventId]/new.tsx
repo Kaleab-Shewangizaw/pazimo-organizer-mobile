@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,6 +18,7 @@ import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
 import { resolveMediaUrl } from "@/lib/media";
+import { goBack } from "@/lib/navigation";
 import { cardShadow, type ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 import { useAuthStore } from "@/store/authStore";
@@ -44,6 +45,10 @@ export default function NewHappyHourScreen() {
     eventTitle?: string;
     eventEndDate?: string;
   }>();
+  const controlScreenHref = {
+    pathname: "/organizer/happy-hour/[eventId]",
+    params: { eventId, eventTitle: eventTitle ?? "", eventEndDate: eventEndDate ?? "" },
+  } as const;
   // A happy hour can never be scheduled to start, or made to run, past its
   // own event's end. The picker/control screen already thread the event's
   // endDate through as a param (used immediately, no loading flicker), but
@@ -80,7 +85,7 @@ export default function NewHappyHourScreen() {
     mutationFn: (input: CreateHappyHourInput) => createEventHappyHour(eventId, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["happy-hours", eventId] });
-      router.back();
+      goBack(controlScreenHref);
     },
   });
 
@@ -156,7 +161,7 @@ export default function NewHappyHourScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
+        <Pressable onPress={() => goBack(controlScreenHref)} hitSlop={12}>
           <Ionicons name="chevron-back" size={24} color={colors.ink} />
         </Pressable>
         <Text style={styles.topBarTitle} numberOfLines={1}>

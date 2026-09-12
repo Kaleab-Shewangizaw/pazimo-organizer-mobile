@@ -14,6 +14,7 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatCountdown, formatMoney } from "@/lib/format";
+import { goBack } from "@/lib/navigation";
 import { cardShadow, type ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 import { useCountdownTo } from "@/lib/useCountdownTo";
@@ -82,7 +83,7 @@ export default function HappyHourScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
+        <Pressable onPress={() => goBack("/organizer/happy-hour")} hitSlop={12}>
           <Ionicons name="chevron-back" size={24} color={colors.ink} />
         </Pressable>
         <Text style={styles.topBarTitle} numberOfLines={1}>

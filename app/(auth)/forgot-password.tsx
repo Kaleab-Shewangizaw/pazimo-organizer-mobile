@@ -1,5 +1,4 @@
 import { useMutation } from "@tanstack/react-query";
-import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -16,6 +15,7 @@ import {
 } from "@/features/auth/schemas";
 import { bannerMessageFor, VALIDATION_ERROR_MESSAGE } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
+import { goBack } from "@/lib/navigation";
 import type { ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 import { useAuthStore } from "@/store/authStore";
@@ -115,7 +115,7 @@ function RequestCodeStep({
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText} onPress={() => router.back()} accessibilityRole="link">
+        <Text style={styles.footerText} onPress={() => goBack("/")} accessibilityRole="link">
           ‹ Back to sign in
         </Text>
       </View>
