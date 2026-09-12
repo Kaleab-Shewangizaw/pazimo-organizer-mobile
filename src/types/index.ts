@@ -352,6 +352,100 @@ export interface BeverageDashboardResponse {
   };
 }
 
+/**
+ * GET /api/beverages/organizer/catalog — the organizer's sellable drinks,
+ * with images. The revenue-dashboard rows above (BeverageByDrink) don't
+ * carry an image themselves; the Bar tab cross-references this by `_id`
+ * (BeverageByDrink._id is the same Beverage id) to show one.
+ */
+export interface BeverageCatalogItem {
+  _id: string;
+  name: string;
+  image?: string | null;
+  color?: string | null;
+}
+
+export interface BeverageCatalogResponse {
+  success: true;
+  data: BeverageCatalogItem[];
+}
+
+// --- Happy hour -----------------------------------------------------------
+// backend/src/models/HappyHour.js + utils/happyHour.js, confirmed by reading
+// both directly (~/Documents/pazimo/backend, 2026-09-12). A campaign's
+// status is never stored — it's derived from wall-clock time on every read,
+// so the same shape comes back from listing an event's campaigns and from
+// the happy-hour status attached to each line-up row below.
+
+/** Derived from HappyHour + Date.now() — see utils/happyHour.js getCampaignState. */
+export type HappyHourState =
+  | { status: "none" }
+  | { status: "cancelled" }
+  | { status: "scheduled"; startsAt: string | null; price?: number; happyHourId?: string }
+  | { status: "active"; startsAt: string; endsAt: string; price?: number; happyHourId?: string }
+  | { status: "ended"; endedAt: string };
+
+/** One row of GET /api/beverages/organizer/events/:eventId/beverages — this event's drink line-up. */
+export interface EventBeverageRow {
+  _id: string;
+  event: string;
+  organizer: string;
+  beverage: { _id: string; name: string; image?: string | null; color?: string | null; isActive: boolean } | null;
+  price: number;
+  currency: "ETB";
+  stockTotal: number;
+  sold: number;
+  remaining: number;
+  isAvailable: boolean;
+  happyHourStatus: HappyHourState;
+  unavailableReason: "removed" | "inactive" | "blocked" | null;
+  createdAt: string;
+}
+
+export interface EventBeverageLineupResponse {
+  success: true;
+  data: EventBeverageRow[];
+  event: { _id: string; title: string; startDate: string; status: EventStatus };
+  organizerEligibility: string;
+}
+
+/** One drink inside a happy-hour campaign — `beverage`/`regularPrice` are only populated by listEventHappyHours. */
+export interface HappyHourItem {
+  lineup: string;
+  price: number;
+  beverage?: { _id: string; name: string; color?: string | null } | null;
+  regularPrice?: number | null;
+}
+
+/** A happy-hour campaign (backend/src/models/HappyHour.js). */
+export interface HappyHourCampaign {
+  _id: string;
+  scope: "EVENT" | "VENUE";
+  event?: string;
+  organizer?: string;
+  items: HappyHourItem[];
+  durationMinutes: number;
+  startMode: "manual" | "scheduled";
+  scheduledStartAt?: string | null;
+  startedAt?: string | null;
+  cancelledAt?: string | null;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+  /** Only present on listEventHappyHours' response — derived, not stored. */
+  state?: HappyHourState;
+}
+
+export interface HappyHourListResponse {
+  success: true;
+  data: HappyHourCampaign[];
+}
+
+export interface HappyHourMutationResponse {
+  success: true;
+  data: HappyHourCampaign;
+}
+
 // --- Cinema / "Cashier" ------------------------------------------------------
 
 export interface CinemaProfile {
