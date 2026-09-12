@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useMemo } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { getEventBeverageLineup } from "@/api/beverages";
 import { getOrganizerDashboard } from "@/api/organizers";
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
@@ -17,25 +18,48 @@ import { resolveMediaUrl } from "@/lib/media";
 import { cardShadow, type ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 import { useAuthStore } from "@/store/authStore";
+import type { DashboardEvent } from "@/types";
 
 const CURRENCY = "ETB" as const;
 
 /**
  * Pick which event to run happy hour for — reached from the wine-glass icon
- * on the Bar tab's header. Every event, not just ones with beverage
- * revenue already (unlike the Bar tab's own "By event" list): an event's
- * very first happy hour has no sales yet to have shown up there.
+ * on the Bar tab's header. Only events that are still worth running one on:
+ * not sold out (tickets), and currently selling at least one drink that
+ * isn't itself out of stock. There's no single backend endpoint for that —
+ * listBeverageEvents (beverageFinanceController.js) is admin-only — so this
+ * cross-checks each not-sold-out event's own line-up (GET .../beverages,
+ * already used by the creation screen) rather than one new bulk endpoint.
  */
 export default function HappyHourEventPickerScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const organizerId = useAuthStore((s) => s.user?._id);
 
-  const query = useQuery({
+  const eventsQuery = useQuery({
     queryKey: ["organizer-dashboard", organizerId, CURRENCY],
     queryFn: () => getOrganizerDashboard(organizerId as string, CURRENCY),
     enabled: !!organizerId,
   });
+
+  const notSoldOut = (eventsQuery.data?.data.events ?? []).filter(
+    (e) => !(e.capacity && e.ticketStats.total >= e.capacity),
+  );
+
+  const lineupQueries = useQueries({
+    queries: notSoldOut.map((event) => ({
+      queryKey: ["event-beverage-lineup", event._id],
+      queryFn: () => getEventBeverageLineup(event._id),
+    })),
+  });
+  const lineupsLoading = lineupQueries.some((q) => q.isPending);
+
+  const sellingEvents: DashboardEvent[] = notSoldOut.filter((_, index) => {
+    const rows = lineupQueries[index]?.data?.data ?? [];
+    return rows.some((row) => row.isAvailable && row.remaining > 0 && !row.unavailableReason);
+  });
+
+  const isLoading = eventsQuery.isPending || (notSoldOut.length > 0 && lineupsLoading);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
@@ -46,22 +70,28 @@ export default function HappyHourEventPickerScreen() {
         <Text style={styles.topBarTitle}>Happy hour</Text>
       </View>
 
-      {query.isPending ? (
+      {isLoading ? (
         <LoadingScreen />
-      ) : query.isError ? (
+      ) : eventsQuery.isError ? (
         <View style={styles.errorContainer}>
-          <Banner kind="error" message={bannerMessageFor(query.error) ?? "Couldn't load your events."} />
-          <Button label="Try again" onPress={() => query.refetch()} />
+          <Banner
+            kind="error"
+            message={bannerMessageFor(eventsQuery.error) ?? "Couldn't load your events."}
+          />
+          <Button label="Try again" onPress={() => eventsQuery.refetch()} />
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.content}>
           <Text style={styles.subtitle}>Pick an event to set up or manage its happy hour.</Text>
 
-          {query.data.data.events.length === 0 ? (
-            <EmptyState title="No events yet" body="Create an event to run a happy hour on it." />
+          {sellingEvents.length === 0 ? (
+            <EmptyState
+              title="No eligible events"
+              body="An event needs drinks currently in stock and available to sell — and not be sold out — to run a happy hour."
+            />
           ) : (
             <View style={styles.list}>
-              {query.data.data.events.map((event) => {
+              {sellingEvents.map((event) => {
                 const cover = resolveMediaUrl(event.coverImages?.[0]);
                 return (
                   <Pressable

@@ -1,15 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { createEventHappyHour, getEventBeverageLineup } from "@/api/beverages";
+import { createEventHappyHour, getEventBeverageLineup, type CreateHappyHourInput } from "@/api/beverages";
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { SegmentedControl } from "@/components/SegmentedControl";
 import { TextField } from "@/components/TextField";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
@@ -20,14 +22,16 @@ import { useColors } from "@/lib/useColors";
 import type { EventBeverageRow } from "@/types";
 
 const CURRENCY = "ETB" as const;
-const DURATION_OPTIONS = [15, 30, 60, 90, 120];
+const DURATION_PRESETS = [15, 30, 60, 90, 120];
+type DurationChoice = number | "custom";
+type StartChoice = "manual" | "scheduled";
 
 /**
  * Publishes a new happy-hour campaign for this event — pick one or more
  * drinks already on the event's line-up (GET .../beverages), set a
- * discounted price for each, pick a duration, submit. Only "manual" starts
- * (an explicit "Start now" back on the control screen) — matching what was
- * actually asked for; scheduling a future start time isn't wired up here.
+ * discounted price for each, pick a duration (a preset or a custom number
+ * of minutes), and how it starts: manually (an explicit "Start now" back on
+ * the control screen) or automatically at a picked date/time.
  */
 export default function NewHappyHourScreen() {
   const colors = useColors();
@@ -36,7 +40,11 @@ export default function NewHappyHourScreen() {
   const { eventId, eventTitle } = useLocalSearchParams<{ eventId: string; eventTitle?: string }>();
 
   const [selected, setSelected] = useState<Record<string, string>>({}); // eventBeverageId -> price input text
-  const [durationMinutes, setDurationMinutes] = useState<number>(30);
+  const [durationChoice, setDurationChoice] = useState<DurationChoice>(30);
+  const [customDuration, setCustomDuration] = useState("");
+  const [startChoice, setStartChoice] = useState<StartChoice>("manual");
+  const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
+  const [showIosPicker, setShowIosPicker] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   const lineupQuery = useQuery({
@@ -45,8 +53,7 @@ export default function NewHappyHourScreen() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (items: { eventBeverageId: string; price: number }[]) =>
-      createEventHappyHour(eventId, { items, durationMinutes, startMode: "manual" }),
+    mutationFn: (input: CreateHappyHourInput) => createEventHappyHour(eventId, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["happy-hours", eventId] });
       router.back();
@@ -63,6 +70,32 @@ export default function NewHappyHourScreen() {
       }
       return next;
     });
+  }
+
+  function openScheduledPicker() {
+    const initial = scheduledAt ?? new Date(Date.now() + 5 * 60000);
+    if (Platform.OS === "android") {
+      DateTimePickerAndroid.open({
+        value: initial,
+        mode: "date",
+        minimumDate: new Date(),
+        onChange: (event, pickedDate) => {
+          if (event.type !== "set" || !pickedDate) return;
+          DateTimePickerAndroid.open({
+            value: pickedDate,
+            mode: "time",
+            onChange: (timeEvent, pickedTime) => {
+              if (timeEvent.type !== "set" || !pickedTime) return;
+              const combined = new Date(pickedDate);
+              combined.setHours(pickedTime.getHours(), pickedTime.getMinutes(), 0, 0);
+              setScheduledAt(combined);
+            },
+          });
+        },
+      });
+    } else {
+      setShowIosPicker(true);
+    }
   }
 
   function submit(rows: EventBeverageRow[]) {
@@ -85,8 +118,30 @@ export default function NewHappyHourScreen() {
       }
       items.push({ eventBeverageId: id, price });
     }
+
+    const durationMinutes =
+      durationChoice === "custom" ? Number(customDuration) : durationChoice;
+    if (!Number.isInteger(durationMinutes) || durationMinutes < 1) {
+      setFormError("Enter a valid duration in minutes");
+      return;
+    }
+
+    if (startChoice === "scheduled") {
+      if (!scheduledAt || scheduledAt.getTime() <= Date.now()) {
+        setFormError("Pick a start time in the future");
+        return;
+      }
+    }
+
     setFormError(null);
-    createMutation.mutate(items);
+    createMutation.mutate({
+      items,
+      durationMinutes,
+      startMode: startChoice,
+      ...(startChoice === "scheduled" && scheduledAt
+        ? { scheduledStartAt: scheduledAt.toISOString() }
+        : {}),
+    });
   }
 
   return (
@@ -149,12 +204,12 @@ export default function NewHappyHourScreen() {
 
                   <Text style={styles.sectionLabel}>Duration</Text>
                   <View style={styles.durationRow}>
-                    {DURATION_OPTIONS.map((minutes) => {
-                      const active = durationMinutes === minutes;
+                    {DURATION_PRESETS.map((minutes) => {
+                      const active = durationChoice === minutes;
                       return (
                         <Pressable
                           key={minutes}
-                          onPress={() => setDurationMinutes(minutes)}
+                          onPress={() => setDurationChoice(minutes)}
                           style={[styles.durationChip, active && styles.durationChipActive]}
                         >
                           <Text
@@ -165,7 +220,64 @@ export default function NewHappyHourScreen() {
                         </Pressable>
                       );
                     })}
+                    <Pressable
+                      onPress={() => setDurationChoice("custom")}
+                      style={[styles.durationChip, durationChoice === "custom" && styles.durationChipActive]}
+                    >
+                      <Text
+                        style={[
+                          styles.durationChipText,
+                          durationChoice === "custom" && styles.durationChipTextActive,
+                        ]}
+                      >
+                        Custom
+                      </Text>
+                    </Pressable>
                   </View>
+                  {durationChoice === "custom" ? (
+                    <TextField
+                      label="Custom duration (minutes)"
+                      value={customDuration}
+                      onChangeText={setCustomDuration}
+                      keyboardType="number-pad"
+                      placeholder="e.g. 45"
+                    />
+                  ) : null}
+
+                  <Text style={styles.sectionLabel}>Starting</Text>
+                  <SegmentedControl<StartChoice>
+                    options={[
+                      { value: "manual", label: "Start manually" },
+                      { value: "scheduled", label: "Start automatically" },
+                    ]}
+                    value={startChoice}
+                    onChange={setStartChoice}
+                  />
+                  {startChoice === "scheduled" ? (
+                    <>
+                      <Pressable onPress={openScheduledPicker} style={styles.scheduleButton}>
+                        <Ionicons name="calendar-outline" size={18} color={colors.ink} />
+                        <Text style={styles.scheduleButtonText}>
+                          {scheduledAt ? scheduledAt.toLocaleString() : "Pick a start time"}
+                        </Text>
+                      </Pressable>
+                      {Platform.OS === "ios" && showIosPicker ? (
+                        <DateTimePicker
+                          value={scheduledAt ?? new Date(Date.now() + 5 * 60000)}
+                          mode="datetime"
+                          minimumDate={new Date()}
+                          onChange={(event, pickedDate) => {
+                            setShowIosPicker(false);
+                            if (event.type === "set" && pickedDate) setScheduledAt(pickedDate);
+                          }}
+                        />
+                      ) : null}
+                    </>
+                  ) : (
+                    <Text style={styles.helperText}>
+                      You'll start it yourself with the "Start now" button.
+                    </Text>
+                  )}
 
                   {formError ? <Banner kind="error" message={formError} /> : null}
                   {createMutation.isError ? (
@@ -372,6 +484,27 @@ const createStyles = (colors: ThemeColors) =>
     },
     durationChipTextActive: {
       color: colors.buttonPrimaryText,
+    },
+    scheduleButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+    },
+    scheduleButtonText: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      color: colors.ink,
+    },
+    helperText: {
+      fontFamily: fonts.body,
+      fontSize: 13,
+      color: colors.textMuted,
+      marginTop: -4,
     },
     errorContainer: {
       flex: 1,
