@@ -130,7 +130,18 @@ export default function OrganizerBarScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <ScrollView contentContainerStyle={[styles.listContent, { paddingBottom: tabBarHeight + 24 }]}>
-        <Text style={styles.screenTitle}>Bar</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.screenTitle}>Bar</Text>
+          <Pressable
+            onPress={() => router.push("/organizer/happy-hour")}
+            hitSlop={12}
+            style={styles.happyHourButton}
+            accessibilityRole="button"
+            accessibilityLabel="Happy hour"
+          >
+            <Ionicons name="wine-outline" size={20} color={colors.ink} />
+          </Pressable>
+        </View>
 
         <HeroCard
           eyebrow="Bar revenue"
@@ -451,11 +462,24 @@ const createStyles = (colors: ThemeColors) =>
     header: {
       padding: 20,
     },
+    titleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 4,
+    },
     screenTitle: {
       fontFamily: fonts.bold,
       fontSize: 22,
       color: colors.ink,
-      marginBottom: 4,
+    },
+    happyHourButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.surfaceAlt,
     },
     errorContainer: {
       flex: 1,

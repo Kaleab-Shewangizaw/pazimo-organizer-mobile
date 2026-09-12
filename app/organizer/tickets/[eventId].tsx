@@ -110,20 +110,6 @@ export default function EventTicketsScreen() {
           {title ?? "Ticket sales"}
         </Text>
         <Pressable
-          onPress={() =>
-            router.push({
-              pathname: "/organizer/happy-hour/[eventId]",
-              params: { eventId, eventTitle: title ?? "" },
-            })
-          }
-          hitSlop={12}
-          style={styles.iconButton}
-          accessibilityRole="button"
-          accessibilityLabel="Happy hour"
-        >
-          <Ionicons name="flash-outline" size={20} color={colors.ink} />
-        </Pressable>
-        <Pressable
           onPress={() => setUsherCodeOpen(true)}
           hitSlop={12}
           style={styles.iconButton}
