@@ -5,7 +5,12 @@ import { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { cancelEventHappyHour, listEventHappyHours, startEventHappyHour } from "@/api/beverages";
+import {
+  cancelEventHappyHour,
+  listEventHappyHours,
+  listOrganizerBeverageSales,
+  startEventHappyHour,
+} from "@/api/beverages";
 import { getOrganizerDashboard } from "@/api/organizers";
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
@@ -19,7 +24,7 @@ import { cardShadow, type ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 import { useCountdownTo } from "@/lib/useCountdownTo";
 import { useAuthStore } from "@/store/authStore";
-import type { HappyHourCampaign, HappyHourState } from "@/types";
+import type { HappyHourCampaign, HappyHourState, OrganizerBeverageSaleRow } from "@/types";
 
 const CURRENCY = "ETB" as const;
 
@@ -28,13 +33,43 @@ function isLive(state: HappyHourState | undefined) {
 }
 
 /**
+ * When a campaign actually ran (or is running): `campaign.state` alone
+ * doesn't carry a `startsAt` once it's "ended" (see utils/happyHour.js
+ * getCampaignState — the ended branch only returns endedAt), so this
+ * derives the window straight from what's actually stored, which works for
+ * any started campaign regardless of its current state.
+ */
+function effectiveWindow(campaign: HappyHourCampaign): { startsAt: Date; endsAt: Date } | null {
+  const effectiveStart =
+    campaign.startMode === "manual" ? campaign.startedAt : campaign.scheduledStartAt;
+  if (!effectiveStart) return null;
+  const startsAt = new Date(effectiveStart);
+  const endsAt = new Date(startsAt.getTime() + campaign.durationMinutes * 60000);
+  return { startsAt, endsAt };
+}
+
+/** Sales that landed inside this campaign's own window, on one of its drinks. */
+function salesDuring(campaign: HappyHourCampaign, allSales: OrganizerBeverageSaleRow[]) {
+  const window = effectiveWindow(campaign);
+  if (!window) return [];
+  const lineupIds = new Set(campaign.items.map((i) => i.lineup));
+  return allSales.filter((sale) => {
+    if (!lineupIds.has(sale.eventBeverage)) return false;
+    const soldAt = new Date(sale.soldAt).getTime();
+    return soldAt >= window.startsAt.getTime() && soldAt <= window.endsAt.getTime();
+  });
+}
+
+/**
  * Per-event happy-hour control panel — reached from the event picker off
  * the Bar tab's wine-glass icon. Lists every campaign ever created for this
  * event (backend never deletes one, only cancels — see models/HappyHour.js),
- * each with its live countdown and Start/Cancel actions. Polls while
- * anything is still scheduled or active, since a campaign's status is
- * derived from wall-clock time on the server and only catches up to it on
- * the next fetch.
+ * each with its live countdown, Start/Cancel actions, and how much it's
+ * actually sold (see salesDuring — cross-referenced from the raw sale
+ * ledger, since a sale carries no reference back to the happy hour it was
+ * part of). Polls while anything is still scheduled or active, since a
+ * campaign's status is derived from wall-clock time on the server and only
+ * catches up to it on the next fetch.
  */
 export default function HappyHourScreen() {
   const colors = useColors();
@@ -69,6 +104,31 @@ export default function HappyHourScreen() {
       return campaigns.some((c) => isLive(c.state)) ? 15000 : false;
     },
   });
+
+  // The earliest any campaign actually started — nothing sold under happy
+  // hour could have landed before that, so it's a safe lower bound for one
+  // fetch covering every campaign shown below (each card filters its own
+  // slice of it by its own window + drinks — see salesDuring).
+  const campaigns = query.data?.data ?? [];
+  const earliestStart = campaigns.reduce<Date | null>((min, c) => {
+    const window = effectiveWindow(c);
+    if (!window) return min;
+    return !min || window.startsAt < min ? window.startsAt : min;
+  }, null);
+
+  const salesQuery = useQuery({
+    queryKey: ["happy-hour-sales", eventId, earliestStart?.toISOString()],
+    queryFn: () =>
+      listOrganizerBeverageSales({
+        eventId,
+        from: earliestStart!.toISOString(),
+        status: "confirmed",
+        limit: 200,
+      }),
+    enabled: !!earliestStart,
+    refetchInterval: campaigns.some((c) => isLive(c.state)) ? 15000 : false,
+  });
+  const allSales = salesQuery.data?.data ?? [];
 
   const startMutation = useMutation({
     mutationFn: (happyHourId: string) => startEventHappyHour(eventId, happyHourId),
@@ -113,19 +173,21 @@ export default function HappyHourScreen() {
             }
           />
 
-          {query.data.data.length === 0 ? (
+          {campaigns.length === 0 ? (
             <EmptyState
               title="No happy hours yet"
               body="Create one to run a time-boxed discount on drinks for this event."
             />
           ) : (
             <View style={styles.list}>
-              {query.data.data.map((campaign) => (
+              {campaigns.map((campaign) => (
                 <HappyHourCard
                   key={campaign._id}
                   colors={colors}
                   campaign={campaign}
                   eventEnd={eventEnd}
+                  sales={salesDuring(campaign, allSales)}
+                  salesLoading={salesQuery.isPending && !!effectiveWindow(campaign)}
                   onStart={() => startMutation.mutate(campaign._id)}
                   onCancel={() => cancelMutation.mutate(campaign._id)}
                   isStarting={startMutation.isPending && startMutation.variables === campaign._id}
@@ -162,6 +224,8 @@ function HappyHourCard({
   colors,
   campaign,
   eventEnd,
+  sales,
+  salesLoading,
   onStart,
   onCancel,
   isStarting,
@@ -170,6 +234,8 @@ function HappyHourCard({
   colors: ThemeColors;
   campaign: HappyHourCampaign;
   eventEnd: Date | null;
+  sales: OrganizerBeverageSaleRow[];
+  salesLoading: boolean;
   onStart: () => void;
   onCancel: () => void;
   isStarting: boolean;
@@ -178,6 +244,9 @@ function HappyHourCard({
   const styles = cardStyles(colors);
   const state = campaign.state ?? { status: "none" as const };
   const meta = STATE_META[state.status];
+  const hasStarted = effectiveWindow(campaign) != null;
+  const salesUnits = sales.reduce((sum, s) => sum + s.quantity, 0);
+  const salesRevenue = sales.reduce((sum, s) => sum + s.totalAmount, 0);
 
   const countdownTarget =
     state.status === "active" ? state.endsAt : state.status === "scheduled" ? state.startsAt : null;
@@ -234,6 +303,23 @@ function HappyHourCard({
           </View>
         ))}
       </View>
+
+      {hasStarted ? (
+        <View style={styles.salesRow}>
+          {salesLoading ? (
+            <Text style={styles.salesText}>Loading sales…</Text>
+          ) : sales.length > 0 ? (
+            <Text style={styles.salesText}>
+              <Text style={styles.salesEmphasis}>
+                {salesUnits} sold · {formatMoney(salesRevenue, CURRENCY)}
+              </Text>{" "}
+              during this happy hour
+            </Text>
+          ) : (
+            <Text style={styles.salesText}>No sales yet during this happy hour</Text>
+          )}
+        </View>
+      ) : null}
 
       {wouldOutlastEvent ? (
         <Text style={styles.blockedNote}>
@@ -334,6 +420,20 @@ const cardStyles = (colors: ThemeColors) =>
       fontFamily: fonts.semibold,
       fontSize: 14,
       color: colors.success,
+    },
+    salesRow: {
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      paddingTop: 10,
+    },
+    salesText: {
+      fontFamily: fonts.body,
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    salesEmphasis: {
+      fontFamily: fonts.semibold,
+      color: colors.ink,
     },
     blockedNote: {
       fontFamily: fonts.body,

@@ -6,6 +6,7 @@ import type {
   EventBeverageLineupResponse,
   HappyHourListResponse,
   HappyHourMutationResponse,
+  OrganizerBeverageSalesResponse,
 } from "@/types";
 
 /**
@@ -90,4 +91,40 @@ export function cancelEventHappyHour(eventId: string, happyHourId: string) {
     `/beverages/organizer/events/${eventId}/happy-hours/${happyHourId}`,
     { method: "DELETE" },
   );
+}
+
+export interface ListOrganizerSalesParams {
+  eventId?: string;
+  /** Inclusive lower bound on soldAt, compared exactly (unlike `to` below). */
+  from?: string;
+  /**
+   * Inclusive upper bound on soldAt — but the backend rounds it up to the
+   * end of that calendar day (buildDateRange in beverageSalesController.js),
+   * not an exact timestamp. Fine for a day-range report; too coarse for a
+   * happy hour's minutes-wide window, so callers wanting that precision
+   * should omit `to` and filter the results by exact soldAt themselves.
+   */
+  to?: string;
+  status?: "confirmed" | "refunded" | "all";
+  page?: number;
+  limit?: number;
+}
+
+/**
+ * GET /api/beverages/organizer/sales — the raw sale ledger (not the
+ * byBeverage/byEvent revenue aggregates), so callers can inspect individual
+ * sales' eventBeverage/soldAt — e.g. to work out which sales fell inside a
+ * specific happy-hour campaign's window (see the OrganizerBeverageSaleRow
+ * doc comment for why that isn't a stored field).
+ */
+export function listOrganizerBeverageSales(params: ListOrganizerSalesParams) {
+  const query = new URLSearchParams();
+  if (params.eventId) query.set("eventId", params.eventId);
+  if (params.from) query.set("from", params.from);
+  if (params.to) query.set("to", params.to);
+  if (params.status) query.set("status", params.status);
+  if (params.page) query.set("page", String(params.page));
+  if (params.limit) query.set("limit", String(params.limit));
+  const qs = query.toString();
+  return apiRequest<OrganizerBeverageSalesResponse>(`/beverages/organizer/sales${qs ? `?${qs}` : ""}`);
 }

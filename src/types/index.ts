@@ -446,6 +446,36 @@ export interface HappyHourMutationResponse {
   data: HappyHourCampaign;
 }
 
+/**
+ * One row of GET /api/beverages/organizer/sales (beverageSalesController.js
+ * listSales) — the raw ledger, unlike the byBeverage/byEvent aggregates.
+ * Carries no reference back to a happy hour (BeverageSale.recordSale only
+ * ever saves the already-discounted unitPrice — see
+ * beverageSalesService.js) — matching one to a campaign means cross-
+ * referencing `eventBeverage` + `soldAt` against the campaign's own window
+ * client-side.
+ */
+export interface OrganizerBeverageSaleRow {
+  _id: string;
+  event: { _id: string; title: string } | null;
+  eventBeverage: string;
+  beverageName: string;
+  beverageColor?: string | null;
+  unitPrice: number;
+  quantity: number;
+  totalAmount: number;
+  currency: string;
+  soldAt: string;
+  status: "confirmed" | "refunded";
+  channel: "online" | "manual";
+}
+
+export interface OrganizerBeverageSalesResponse {
+  success: true;
+  data: OrganizerBeverageSaleRow[];
+  pagination: { total: number; page: number; pages: number };
+}
+
 // --- Cinema / "Cashier" ------------------------------------------------------
 
 export interface CinemaProfile {
