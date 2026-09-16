@@ -1,11 +1,14 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
+import { router } from "expo-router";
 import { useMemo } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Button } from "@/components/Button";
+import { getOrganizerProfile } from "@/api/organizers";
 import { useTabBarHeight } from "@/components/TabBarHeightProvider";
-import { ThemeToggleButton } from "@/components/ThemeToggleButton";
 import { fonts } from "@/lib/fonts";
+import { resolveMediaUrl } from "@/lib/media";
 import type { ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 import { useAuthStore } from "@/store/authStore";
@@ -15,32 +18,52 @@ export default function OrganizerAccountScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const tabBarHeight = useTabBarHeight();
   const user = useAuthStore((s) => s.user);
-  const signOut = useAuthStore((s) => s.signOut);
+  const avatarUrl = resolveMediaUrl(user?.profilePicture);
+
+  // organization isn't on /auth/me (it lives on the sign-up
+  // OrganizerRegistration doc, joined in by GET /organizers/profile), so the
+  // store's user never has it — fetch it separately for display here.
+  const profileQuery = useQuery({
+    queryKey: ["organizer-profile"],
+    queryFn: getOrganizerProfile,
+  });
+  const organization = profileQuery.data?.data.organization;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarHeight + 24 }]}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>Account</Text>
-          <ThemeToggleButton />
+          <Pressable
+            onPress={() => router.push("/organizer/account/menu")}
+            hitSlop={12}
+            style={styles.menuButton}
+            accessibilityRole="button"
+            accessibilityLabel="Account menu"
+          >
+            <Ionicons name="menu-outline" size={22} color={colors.ink} />
+          </Pressable>
         </View>
 
-        <View style={styles.avatar}>
-          <Text style={styles.avatarInitial}>
-            {user?.firstName?.charAt(0).toUpperCase() ?? "?"}
-          </Text>
-        </View>
+        {avatarUrl ? (
+          <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+        ) : (
+          <View style={[styles.avatar, styles.avatarFallback]}>
+            <Text style={styles.avatarInitial}>
+              {user?.firstName?.charAt(0).toUpperCase() ?? "?"}
+            </Text>
+          </View>
+        )}
         <Text style={styles.name}>
           {user?.firstName} {user?.lastName}
         </Text>
         <Text style={styles.role}>Organizer</Text>
 
         <View style={styles.section}>
+          <InfoRow colors={colors} label="Organization" value={organization ?? "—"} />
           <InfoRow colors={colors} label="Email" value={user?.email ?? "—"} />
           <InfoRow colors={colors} label="Phone" value={user?.phoneNumber ?? "—"} last />
         </View>
-
-        <Button label="Sign out" variant="secondary" onPress={signOut} style={styles.signOut} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -110,14 +133,22 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 22,
       color: colors.ink,
     },
+    menuButton: {
+      width: 36,
+      height: 36,
+      alignItems: "center",
+      justifyContent: "center",
+    },
     avatar: {
       width: 72,
       height: 72,
       borderRadius: 36,
+      marginBottom: 12,
+    },
+    avatarFallback: {
       backgroundColor: colors.accentSoft,
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: 12,
     },
     avatarInitial: {
       fontFamily: fonts.extrabold,
@@ -138,9 +169,5 @@ const createStyles = (colors: ThemeColors) =>
     section: {
       alignSelf: "stretch",
       marginBottom: 28,
-    },
-    signOut: {
-      alignSelf: "stretch",
-      marginTop: 32,
     },
   });

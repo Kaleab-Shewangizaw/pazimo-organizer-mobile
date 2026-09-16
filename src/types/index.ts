@@ -21,6 +21,10 @@ export interface User {
   role: UserRole;
   isActive: boolean;
   isPhoneVerified?: boolean;
+  /** Relative path from the backend's /uploads static mount (e.g. "/uploads/foo.jpg"), or null. Resolve via resolveMediaUrl (src/lib/media.ts) before rendering. */
+  profilePicture?: string | null;
+  /** Organizer-only — lives on the OrganizerRegistration doc from sign-up, joined in by the /organizers/profile endpoints. null for every other role. */
+  organization?: string | null;
 }
 
 export type OtpChannel = "sms" | "email";
@@ -43,6 +47,41 @@ export type LoginResponse =
 export interface MeResponse {
   status: "success";
   data: User;
+}
+
+/**
+ * Backend: GET/PUT /api/organizers/profile and PUT /api/organizers/profile/picture
+ * (backend/src/controllers/organizerController.js) — unlike the auth
+ * endpoints above, organizerController's own envelope is `{ success, data }`
+ * rather than `{ status, data }`.
+ */
+export interface OrganizerProfileResponse {
+  success: true;
+  data: User;
+}
+
+/** Backend: PUT /api/organizers/security (organizerController.updatePassword). */
+export interface UpdatePasswordResponse {
+  success: true;
+  message: string;
+}
+
+/**
+ * Backend: notificationPreferences on the User model (backend/src/models/User.js).
+ * Stored for every role, not organizer-specific — GET/PUT
+ * /api/auth/notification-preferences (authController.js) works for any
+ * authenticated account. Delivery isn't gated on these yet (see that
+ * controller's own comment); they're just persisted for now.
+ */
+export interface NotificationPreferences {
+  ticketUpdates: boolean;
+  chatMessages: boolean;
+  promotions: boolean;
+}
+
+export interface NotificationPreferencesResponse {
+  status: "success";
+  data: NotificationPreferences;
 }
 
 export interface OrganizerOtpSentResponse {

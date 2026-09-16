@@ -36,6 +36,14 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pazimo needs access to your photos so you can set a profile picture.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#FFFFFF",

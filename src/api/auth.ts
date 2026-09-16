@@ -2,6 +2,8 @@ import { apiRequest } from "@/api/client";
 import type {
   LoginResponse,
   MeResponse,
+  NotificationPreferences,
+  NotificationPreferencesResponse,
   OrganizerOtpSentResponse,
   OrganizerOtpVerifyResponse,
   OrganizerSignUpInput,
@@ -137,5 +139,27 @@ export function organizerSignUp(input: OrganizerSignUpInput) {
     method: "POST",
     body: form,
     auth: false,
+  });
+}
+
+/**
+ * GET /api/auth/notification-preferences (authController.js) — role-agnostic
+ * (guarded by `protect`, not restricted to any role), so this works the same
+ * for an organizer account as any other. Delivery isn't wired to these yet
+ * per that controller's own comment; they're just persisted for now.
+ */
+export function getNotificationPreferences() {
+  return apiRequest<NotificationPreferencesResponse>("/auth/notification-preferences");
+}
+
+/**
+ * PUT /api/auth/notification-preferences. The backend whitelists exactly
+ * ticketUpdates/chatMessages/promotions and ignores anything else, so a
+ * partial patch (only the key(s) actually changed) is safe to send.
+ */
+export function updateNotificationPreferences(patch: Partial<NotificationPreferences>) {
+  return apiRequest<NotificationPreferencesResponse>("/auth/notification-preferences", {
+    method: "PUT",
+    body: { ...patch },
   });
 }

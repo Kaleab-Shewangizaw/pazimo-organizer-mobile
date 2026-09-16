@@ -17,6 +17,10 @@ interface AuthState {
   bootstrap: () => Promise<void>;
   signIn: (token: string, user?: User) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Overwrites the cached user in place — for screens that already have a
+   * fresh copy back from the API (e.g. after an edit-profile save) and don't
+   * need a round trip through getCurrentUser() to reflect it everywhere. */
+  setUser: (user: User) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -64,6 +68,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     await clearStoredToken();
     set({ user: null, status: "signedOut" });
   },
+
+  setUser: (user) => set({ user }),
 }));
 
 // Any 401 from the API client clears the session everywhere, not just in

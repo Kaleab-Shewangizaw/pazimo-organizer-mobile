@@ -21,6 +21,18 @@ export const organizerAccountSchema = z.object({
 });
 export type OrganizerAccountValues = z.infer<typeof organizerAccountSchema>;
 
+export const editOrganizerProfileSchema = z.object({
+  firstName: z.string().trim().min(1, "Enter your first name"),
+  lastName: z.string().trim().min(1, "Enter your last name"),
+  email: z.string().trim().min(1, "Email is required").email("Enter a valid email"),
+  phoneNumber: z
+    .string()
+    .trim()
+    .regex(phoneRegex, "Enter a valid Ethiopian phone number, e.g. 0912345678"),
+  organization: z.string().trim().min(2, "Enter your organization name"),
+});
+export type EditOrganizerProfileValues = z.infer<typeof editOrganizerProfileSchema>;
+
 export const organizerOrgSchema = z.object({
   organization: z.string().trim().min(2, "Enter your organization name"),
   organizerType: z.string().trim().min(1, "Select what best describes you"),
