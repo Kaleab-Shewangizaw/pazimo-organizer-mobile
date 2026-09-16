@@ -340,7 +340,7 @@ function DrinkRow({
           {selected ? <Ionicons name="checkmark" size={14} color={colors.buttonPrimaryText} /> : null}
         </View>
         {image ? (
-          <Image source={{ uri: image }} style={styles.thumb} />
+          <Image source={{ uri: image }} style={styles.thumb} resizeMode="contain" />
         ) : (
           <View
             style={[

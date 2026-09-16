@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -110,6 +110,20 @@ export default function EventTicketsScreen() {
         <Text style={styles.topBarTitle} numberOfLines={1}>
           {title ?? "Ticket sales"}
         </Text>
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: "/organizer/redeem-drink/[eventId]",
+              params: { eventId, eventTitle: title ?? "" },
+            })
+          }
+          hitSlop={12}
+          style={styles.iconButton}
+          accessibilityRole="button"
+          accessibilityLabel="Redeem a drink"
+        >
+          <Ionicons name="bag-check-outline" size={20} color={colors.ink} />
+        </Pressable>
         <Pressable
           onPress={() => setUsherCodeOpen(true)}
           hitSlop={12}

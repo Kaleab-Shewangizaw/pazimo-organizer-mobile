@@ -289,7 +289,7 @@ function DrinkRevenueRow({
   return (
     <View style={styles.row}>
       {image ? (
-        <Image source={{ uri: image }} style={styles.thumb} />
+        <Image source={{ uri: image }} style={styles.thumb} resizeMode="contain" />
       ) : (
         <View style={[styles.thumb, styles.thumbFallback, { backgroundColor: drink.color || colors.surfaceAlt }]}>
           <Text style={styles.thumbInitial}>{drink.name.charAt(0).toUpperCase()}</Text>

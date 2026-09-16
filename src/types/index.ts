@@ -457,6 +457,8 @@ export interface HappyHourMutationResponse {
  */
 export interface OrganizerBeverageSaleRow {
   _id: string;
+  /** Human-facing tracking number, e.g. "PZB-SL-000042" — what a customer shows at the counter to collect an online order (see backend/src/models/BeverageSale.js). */
+  referenceNumber?: string;
   event: { _id: string; title: string } | null;
   eventBeverage: string;
   beverageName: string;
@@ -467,7 +469,9 @@ export interface OrganizerBeverageSaleRow {
   currency: string;
   soldAt: string;
   status: "confirmed" | "refunded";
+  /** "online" = a customer's own pre-paid order, collected later — the only kind that can be redeemed. "manual" was rung up and handed over on the spot. */
   channel: "online" | "manual";
+  redeemedAt?: string | null;
 }
 
 export interface OrganizerBeverageSalesResponse {

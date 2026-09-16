@@ -128,3 +128,22 @@ export function listOrganizerBeverageSales(params: ListOrganizerSalesParams) {
   const qs = query.toString();
   return apiRequest<OrganizerBeverageSalesResponse>(`/beverages/organizer/sales${qs ? `?${qs}` : ""}`);
 }
+
+export interface RedeemBeverageSaleResponse {
+  success: true;
+  data: { _id: string; redeemedAt: string };
+}
+
+/**
+ * POST /api/beverages/sales/:saleId/redeem — marks a pre-paid ("online"
+ * channel) drink collected at the counter. Same authorization shape as
+ * ticket check-in (admin/organizer/partner/usher — see redeemBeverageSale
+ * in beverageSalesController.js). Only valid for a confirmed, not-yet-
+ * redeemed, "online"-channel sale; a "manual" one was already handed over
+ * when it was rung up and can't be redeemed again.
+ */
+export function redeemBeverageSale(saleId: string) {
+  return apiRequest<RedeemBeverageSaleResponse>(`/beverages/sales/${saleId}/redeem`, {
+    method: "POST",
+  });
+}
