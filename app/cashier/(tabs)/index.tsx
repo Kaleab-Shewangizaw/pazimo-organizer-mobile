@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Redirect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -25,15 +26,32 @@ export default function CashierHomeScreen() {
   const tabBarHeight = useTabBarHeight();
   const user = useAuthStore((s) => s.user);
   const [refreshing, setRefreshing] = useState(false);
+  // Only the cinema business itself (role "cinema") owns this dashboard — a
+  // real cashier never sees finance figures. `enabled: false` keeps these
+  // owner-only endpoints from ever being called on a cashier's behalf; the
+  // early return below sends it straight to the tab it actually landed on.
+  const isOwner = user?.role === "cinema";
 
-  const profileQuery = useQuery({ queryKey: ["cinema-profile"], queryFn: getCinemaProfile });
-  const financeQuery = useQuery({ queryKey: ["cinema-finance"], queryFn: () => getCinemaFinance(CURRENCY) });
+  const profileQuery = useQuery({
+    queryKey: ["cinema-profile"],
+    queryFn: getCinemaProfile,
+    enabled: isOwner,
+  });
+  const financeQuery = useQuery({
+    queryKey: ["cinema-finance"],
+    queryFn: () => getCinemaFinance(CURRENCY),
+    enabled: isOwner,
+  });
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await Promise.all([profileQuery.refetch(), financeQuery.refetch()]);
     setRefreshing(false);
   }, [profileQuery, financeQuery]);
+
+  if (!isOwner) {
+    return <Redirect href="/cashier/scan" />;
+  }
 
   if (profileQuery.isPending || financeQuery.isPending) {
     return <LoadingScreen />;

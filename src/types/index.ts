@@ -646,6 +646,155 @@ export interface CinemaConcessionSalesSummaryResponse {
   data: CinemaConcessionSalesSummary;
 }
 
+// --- Cinema door/counter scanner ---------------------------------------
+// backend/src/controllers/cinemaTicketController.js (getStaffTicket,
+// getStaffOrder, checkIn, checkInOrder) and cinemaBeverageController.js
+// (listOutstandingForOrder, redeemSale) — mirrors the already-shipped web
+// dashboard's components/cinema/cinema-scanner.tsx exactly, same endpoints
+// and response shapes.
+
+export interface CinemaStaffTicketSeat {
+  row?: string;
+  number?: string;
+  /** "A-12" — the identity to send back in `seatKeys` when admitting by seat. */
+  seatKey?: string;
+  categoryLabel?: string;
+  /** Set once this specific seat has been admitted; null/absent while outstanding. */
+  admittedAt?: string | null;
+}
+
+/** One CinemaTicket row, as the staff-facing lookup returns it — one seat/tier
+ * per document, so a multi-tier order comes back as several of these. */
+export interface CinemaStaffTicket {
+  _id?: string;
+  ticketId: string;
+  movieTitle: string;
+  hallName?: string;
+  ticketType: string;
+  quantity: number;
+  /** Empty/absent on an unassigned-seating hall, where a ticket admits to the room and not to a chair. */
+  seats?: CinemaStaffTicketSeat[] | null;
+  checkedIn: boolean;
+  checkedAt?: string | null;
+  status: string;
+  paymentStatus: string;
+  paymentReference?: string;
+  /** Populated by getStaffTicket/getStaffOrder (endsAt is what `isExpired`, on
+   * the response envelope below, is computed from — the screening's actual
+   * runtime, not just its start). Absent only if the showtime itself was
+   * deleted out from under an existing ticket. */
+  showtime?: { _id?: string; startsAt: string; endsAt: string } | null;
+}
+
+/** A pre-bought concession this order has not collected yet. */
+export interface CinemaOutstandingConcessionItem {
+  _id: string;
+  referenceNumber?: string;
+  beverageName: string;
+  beverageCategory?: string;
+  quantity: number;
+  unitPrice?: number;
+  totalAmount: number;
+  soldAt?: string;
+}
+
+export interface CinemaStaffTicketResponse {
+  success: true;
+  data: CinemaStaffTicket;
+  /** Whether `now` is past the screening's `showtime.endsAt` — computed
+   * server-side (the same gate checkIn/checkInOrder enforce) so the scanner
+   * can show "Expired" before staff ever taps Mark as used. */
+  isExpired: boolean;
+  /** Whether `now` is more than EARLY_ADMISSION_MINUTES before
+   * `showtime.startsAt` — the other half of the same door: doors aren't
+   * open yet, so nothing can be admitted. Mutually exclusive with
+   * `isExpired`; neither set means the screening is on now. */
+  isTooEarly: boolean;
+  outstandingConcessions: CinemaOutstandingConcessionItem[];
+}
+
+export interface CinemaStaffOrderResponse {
+  success: true;
+  data: CinemaStaffTicket[];
+  isExpired: boolean;
+  isTooEarly: boolean;
+  outstandingConcessions: CinemaOutstandingConcessionItem[];
+}
+
+export interface CinemaCheckInTicketResponse {
+  success: true;
+  data: CinemaStaffTicket;
+  admittedSeats: string[];
+  fullyAdmitted: boolean;
+  outstandingConcessions: CinemaOutstandingConcessionItem[];
+}
+
+export interface CinemaCheckInOrderResponse {
+  success: true;
+  data: { tickets: CinemaStaffTicket[]; admittedCount: number };
+  outstandingConcessions: CinemaOutstandingConcessionItem[];
+}
+
+export interface CinemaRedeemConcessionResponse {
+  success: true;
+  data: CinemaOutstandingConcessionItem & { redeemedAt: string };
+}
+
+// --- Venue counter (bar cashiers) ----------------------------------------
+// backend/src/controllers/venueSalesController.js (getOutstandingVenueOrder,
+// redeemSale) — a venue sells only drinks (no seats/tickets), so its counter
+// contract is the simple half of the cinema one above: one code (a plain
+// CODE128 barcode over the bare payment reference — see
+// backend/src/utils/barcodeRenderer.js — not a JSON QR payload like the
+// cinema's), one kind of item, no picker. Mirrors the already-shipped web
+// dashboard's components/venue/venue-scanner.tsx exactly.
+
+export interface VenueOutstandingItem {
+  _id: string;
+  referenceNumber?: string;
+  beverageName: string;
+  quantity: number;
+  unitPrice?: number;
+  totalAmount?: number;
+  soldAt?: string;
+}
+
+export interface VenueOutstandingOrderResponse {
+  success: true;
+  data: VenueOutstandingItem[];
+}
+
+export interface VenueRedeemSaleResponse {
+  success: true;
+  data: VenueOutstandingItem & { redeemedAt: string };
+}
+
+/**
+ * GET /api/cinemas/me/context (cinemaController.getCashierContext) — just
+ * enough identity for a cashier's own account screen to show which cinema
+ * it's working at. GET /me is owner-only, so a cashier can't read the full
+ * profile this comes from.
+ */
+export interface CinemaCashierContextResponse {
+  success: true;
+  data: { _id: string; name: string; beverageEligibility: string };
+}
+
+/**
+ * GET /api/venues/:venueId/beverages (venueController.listVenueBeverages) —
+ * a cashier can't reach GET /venues/me (owner-only), so this reuses the
+ * already cashier-safe beverages endpoint purely for the `venue` identity it
+ * happens to carry alongside the line-up (mirrors the web dashboard's
+ * fetchVenueIdentityForCashier). The line-up itself isn't modeled here since
+ * nothing on the mobile app reads it (yet).
+ */
+export interface VenueIdentityResponse {
+  success: true;
+  data: unknown[];
+  venue: { _id: string; name: string; venueType: string; isActive: boolean };
+  venueEligibility: string;
+}
+
 // --- Usher --------------------------------------------------------------
 // Confirmed against the real, already-shipped backend contract (added by a
 // parallel session on ~/Documents/pazimo/backend, 2026-09-06): ushers are
