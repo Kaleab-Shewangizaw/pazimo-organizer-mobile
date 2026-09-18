@@ -1,10 +1,10 @@
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { useMemo } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Button } from "@/components/Button";
 import { useTabBarHeight } from "@/components/TabBarHeightProvider";
-import { ThemeToggleButton } from "@/components/ThemeToggleButton";
 import { fonts } from "@/lib/fonts";
 import type { ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
@@ -15,14 +15,21 @@ export default function UsherAccountScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const tabBarHeight = useTabBarHeight();
   const user = useAuthStore((s) => s.user);
-  const signOut = useAuthStore((s) => s.signOut);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarHeight + 24 }]}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>Account</Text>
-          <ThemeToggleButton />
+          <Pressable
+            onPress={() => router.push("/usher/account/menu")}
+            hitSlop={12}
+            style={styles.menuButton}
+            accessibilityRole="button"
+            accessibilityLabel="Account menu"
+          >
+            <Ionicons name="menu-outline" size={22} color={colors.ink} />
+          </Pressable>
         </View>
 
         <View style={styles.avatar}>
@@ -39,8 +46,6 @@ export default function UsherAccountScreen() {
           <InfoRow colors={colors} label="Email" value={user?.email ?? "—"} />
           <InfoRow colors={colors} label="Phone" value={user?.phoneNumber ?? "—"} last />
         </View>
-
-        <Button label="Sign out" variant="secondary" onPress={signOut} style={styles.signOut} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -110,6 +115,12 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 22,
       color: colors.ink,
     },
+    menuButton: {
+      width: 36,
+      height: 36,
+      alignItems: "center",
+      justifyContent: "center",
+    },
     avatar: {
       width: 72,
       height: 72,
@@ -138,9 +149,5 @@ const createStyles = (colors: ThemeColors) =>
     section: {
       alignSelf: "stretch",
       marginBottom: 28,
-    },
-    signOut: {
-      alignSelf: "stretch",
-      marginTop: 32,
     },
   });

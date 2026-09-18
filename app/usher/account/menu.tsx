@@ -1,12 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
 import { useMemo, useState } from "react";
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { SegmentedControl } from "@/components/SegmentedControl";
-import { SettingsRow } from "@/components/SettingsRow";
 import { fonts } from "@/lib/fonts";
 import { goBack } from "@/lib/navigation";
 import { cardShadow, type ThemeColors } from "@/lib/theme";
@@ -14,11 +12,13 @@ import { useColors } from "@/lib/useColors";
 import { useAuthStore } from "@/store/authStore";
 import { useThemeStore } from "@/store/themeStore";
 
-const SUPPORT_EMAIL = "support@pazimo.com";
-const SUPPORT_PHONE = "+251991051844"; // E.164 format for tel: links
-const SUPPORT_PHONE_DISPLAY = "+251 991 051 844";
-
-export default function OrganizerAccountMenuScreen() {
+/**
+ * Ushers are scan-only accounts with no money or ownership attached (see the
+ * User model's role comment) — thinner than the organizer/cashier menus, so
+ * this is just the theme toggle and sign out, same hamburger pattern as
+ * app/organizer/account/menu.tsx.
+ */
+export default function UsherAccountMenuScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const signOut = useAuthStore((s) => s.signOut);
@@ -38,44 +38,14 @@ export default function OrganizerAccountMenuScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <View style={styles.topBar}>
-        <Pressable onPress={() => goBack("/organizer/(tabs)/account")} hitSlop={12}>
+        <Pressable onPress={() => goBack("/usher/(tabs)/account")} hitSlop={12}>
           <Ionicons name="chevron-back" size={24} color={colors.ink} />
         </Pressable>
         <Text style={styles.topBarTitle}>Settings</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <SectionLabel colors={colors} styles={styles} title="Account" />
-        <View style={styles.card}>
-          <SettingsRow
-            icon="person-outline"
-            label="Edit profile"
-            last
-            onPress={() => router.push("/organizer/account/edit")}
-          />
-        </View>
-
-        <SectionLabel colors={colors} styles={styles} title="Security" />
-        <View style={styles.card}>
-          <SettingsRow
-            icon="lock-closed-outline"
-            label="Change password"
-            last
-            onPress={() => router.push("/organizer/account/security")}
-          />
-        </View>
-
-        <SectionLabel colors={colors} styles={styles} title="Notifications" />
-        <View style={styles.card}>
-          <SettingsRow
-            icon="notifications-outline"
-            label="Notification preferences"
-            last
-            onPress={() => router.push("/organizer/account/notifications")}
-          />
-        </View>
-
-        <SectionLabel colors={colors} styles={styles} title="Display" />
+        <Text style={styles.sectionLabel}>Display</Text>
         <View style={styles.card}>
           <View style={styles.themeRow}>
             <Text style={styles.themeLabel}>Theme</Text>
@@ -91,53 +61,22 @@ export default function OrganizerAccountMenuScreen() {
           </View>
         </View>
 
-        <SectionLabel colors={colors} styles={styles} title="Legal" />
-        <View style={styles.card}>
-          <SettingsRow
-            icon="document-text-outline"
-            label="Terms & Conditions"
-            onPress={() => router.push("/organizer/account/terms")}
-          />
-          <SettingsRow
-            icon="shield-checkmark-outline"
-            label="Privacy Policy"
-            last
-            onPress={() => router.push("/organizer/account/privacy")}
-          />
-        </View>
-
-        <SectionLabel colors={colors} styles={styles} title="Support" />
-        <View style={styles.card}>
-          <SettingsRow
-            icon="mail-outline"
-            label="Email us"
-            value={SUPPORT_EMAIL}
-            onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}
-          />
-          <SettingsRow
-            icon="call-outline"
-            label="Call us"
-            value={SUPPORT_PHONE_DISPLAY}
-            last
-            onPress={() => Linking.openURL(`tel:${SUPPORT_PHONE}`)}
-          />
-        </View>
-
         <View style={[styles.card, styles.signOutCard]}>
-          <SettingsRow
-            icon="log-out-outline"
-            label="Sign out"
-            danger
-            last
+          <Pressable
             onPress={() => setSignOutDialogVisible(true)}
-          />
+            style={({ pressed }) => [styles.signOutRow, pressed && styles.signOutRowPressed]}
+            accessibilityRole="button"
+          >
+            <Ionicons name="log-out-outline" size={20} color={colors.error} />
+            <Text style={styles.signOutLabel}>Sign out</Text>
+          </Pressable>
         </View>
       </ScrollView>
 
       <ConfirmDialog
         visible={signOutDialogVisible}
         title="Sign out?"
-        message="You'll need to sign in again to manage your events."
+        message="You'll need to sign in again to scan tickets."
         confirmLabel="Sign out"
         destructive
         onConfirm={handleSignOutConfirm}
@@ -145,18 +84,6 @@ export default function OrganizerAccountMenuScreen() {
       />
     </SafeAreaView>
   );
-}
-
-function SectionLabel({
-  colors,
-  styles,
-  title,
-}: {
-  colors: ThemeColors;
-  styles: ReturnType<typeof createStyles>;
-  title: string;
-}) {
-  return <Text style={styles.sectionLabel}>{title}</Text>;
 }
 
 const createStyles = (colors: ThemeColors) =>
@@ -190,7 +117,6 @@ const createStyles = (colors: ThemeColors) =>
       textTransform: "uppercase",
       color: colors.textMuted,
       marginBottom: 8,
-      marginTop: 20,
     },
     card: {
       backgroundColor: colors.surface,
@@ -209,5 +135,19 @@ const createStyles = (colors: ThemeColors) =>
       fontFamily: fonts.semibold,
       fontSize: 15,
       color: colors.ink,
+    },
+    signOutRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingVertical: 14,
+    },
+    signOutRowPressed: {
+      opacity: 0.6,
+    },
+    signOutLabel: {
+      fontFamily: fonts.semibold,
+      fontSize: 15,
+      color: colors.error,
     },
   });
