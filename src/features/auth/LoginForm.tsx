@@ -26,13 +26,22 @@ import { ApiError, type UserRole } from "@/types";
  * that entirely) — it only stops a person from landing in the wrong role's
  * screens by picking the wrong tab.
  *
+ * The Cashier tab accepts more than one real role: a "cinema" account
+ * (a cinema owner working its own counter) or a "cashier" account (real
+ * counter staff, scoped to a cinema or a venue via the User doc's
+ * cinema/venue field — see authController.js login()) all land on the same
+ * tab/screens, since app/cashier's tab layout branches on the signed-in
+ * account from there.
+ *
  * Deliberately the same generic message regardless of the account's real
  * role — never confirms "this email is an organizer account" to whoever's
  * typing, same reasoning as the backend's own "Invalid credentials" not
  * distinguishing a wrong password from a nonexistent email.
  */
-function assertExpectedRole(actualRole: UserRole, expectedRole?: UserRole) {
-  if (!expectedRole || actualRole === expectedRole) return;
+function assertExpectedRole(actualRole: UserRole, expectedRole?: UserRole | UserRole[]) {
+  if (!expectedRole) return;
+  const allowed = Array.isArray(expectedRole) ? expectedRole : [expectedRole];
+  if (allowed.includes(actualRole)) return;
   throw new ApiError("Account not found.", null);
 }
 
@@ -48,8 +57,8 @@ interface LoginFormProps {
    * directly.
    */
   embedded?: boolean;
-  /** The only role this particular tab/screen accepts — see assertExpectedRole above. */
-  expectedRole?: UserRole;
+  /** The only role(s) this particular tab/screen accepts — see assertExpectedRole above. */
+  expectedRole?: UserRole | UserRole[];
 }
 
 /**
@@ -100,7 +109,10 @@ export function LoginForm({ title, subtitle, embedded, expectedRole }: LoginForm
             email: res.data.email,
             channel: res.data.channel,
             maskedDestination: res.data.maskedDestination,
-            expectedRole: expectedRole ?? "",
+            // requiresOtp only ever fires for role "organizer", whose tab
+            // passes a single role rather than the Cashier tab's array —
+            // this param is a route string, so it can't carry an array.
+            expectedRole: typeof expectedRole === "string" ? expectedRole : "",
           },
         });
         return;

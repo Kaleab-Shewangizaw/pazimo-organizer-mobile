@@ -4,13 +4,12 @@
  * Keep in sync with the backend rather than guessing new fields.
  */
 
-// backend/src/models/User.js role enum, plus "usher" — which does not exist
-// on the backend today (no role, no endpoints) but is included here so the
-// app's route guards can be written against a real union member instead of
-// an `as string` escape hatch. See README "Backend limitations". A separate
-// Claude session is adding real usher support to the backend; this app's
-// usher screens stay a placeholder until that contract is confirmed.
-export type UserRole = "customer" | "organizer" | "venue" | "cinema" | "usher";
+// backend/src/models/User.js role enum. "usher" and "cashier" are both real,
+// live roles now (see that file's own comment on the enum) — a usher is
+// scoped to one event at a time via a redeemed EventUsherCode, while a
+// cashier is scoped permanently to exactly one cinema or venue via the
+// `cinema`/`venue` field below.
+export type UserRole = "customer" | "organizer" | "venue" | "cinema" | "usher" | "cashier";
 
 export interface User {
   _id: string;
@@ -25,6 +24,15 @@ export interface User {
   profilePicture?: string | null;
   /** Organizer-only — lives on the OrganizerRegistration doc from sign-up, joined in by the /organizers/profile endpoints. null for every other role. */
   organization?: string | null;
+  /**
+   * Only ever set for role "cashier" — exactly one of `cinema`/`venue` is the
+   * id of the single business this login is scoped to (see authController.js
+   * login()'s comment). The app reads this to decide which counter surface
+   * (cinema ticket/concession scanner vs. venue drink scanner) to show, and
+   * which /api/cinemas/me/* or /api/venues/:venueId/* base to call.
+   */
+  cinema?: string | null;
+  venue?: string | null;
 }
 
 export type OtpChannel = "sms" | "email";

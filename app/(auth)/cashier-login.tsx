@@ -4,8 +4,8 @@ export default function CashierLoginScreen() {
   return (
     <LoginForm
       title="Sign in as Cashier"
-      subtitle="Manage box office sales and concessions for your cinema"
-      expectedRole="cinema"
+      subtitle="Scan tickets, redeem concessions, or hand over drinks at the counter"
+      expectedRole={["cinema", "cashier"]}
     />
   );
 }

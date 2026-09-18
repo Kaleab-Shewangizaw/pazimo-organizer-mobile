@@ -43,7 +43,11 @@ export default function RootLayout() {
   }
 
   const isOrganizer = status === "signedIn" && role === "organizer";
-  const isCashier = status === "signedIn" && role === "cinema";
+  // "cinema" is the cinema business itself, working its own counter; a real
+  // "cashier" is counter staff scoped to a cinema OR a venue (see the User
+  // type's cinema/venue fields). Both land on the same "cashier" stack —
+  // its tab layout branches on which kind actually signed in.
+  const isCashier = status === "signedIn" && (role === "cinema" || role === "cashier");
   const isUsher = status === "signedIn" && role === "usher";
   const isUnsupportedRole =
     status === "signedIn" && !isOrganizer && !isCashier && !isUsher;

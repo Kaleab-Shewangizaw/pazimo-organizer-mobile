@@ -47,7 +47,7 @@ export default function WelcomeScreen() {
   const [tab, setTab] = useState<Tab>("organizer");
   const [staffRole, setStaffRole] = useState<StaffRole>("usher");
 
-  const copy: { title: string; subtitle: string; expectedRole: UserRole } =
+  const copy: { title: string; subtitle: string; expectedRole: UserRole | UserRole[] } =
     tab === "organizer"
       ? {
           title: "Sign in as Organizer",
@@ -62,8 +62,12 @@ export default function WelcomeScreen() {
           }
         : {
             title: "Sign in as Cashier",
-            subtitle: "Manage box office sales and concessions for your cinema",
-            expectedRole: "cinema",
+            subtitle: "Scan tickets, redeem concessions, or hand over drinks at the counter",
+            // A cashier tab admits both a cinema OWNER working its own
+            // counter (role "cinema") and real counter staff (role
+            // "cashier", scoped to a cinema or a venue) — app/cashier's tab
+            // layout branches on which one actually signed in.
+            expectedRole: ["cinema", "cashier"],
           };
 
   return (
