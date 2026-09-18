@@ -28,6 +28,15 @@ type TabBarProps = Parameters<TabBarRenderProp>[0];
  * height back out (see TabBarHeightProvider) and feeds it into
  * `sceneStyle.paddingBottom` so scrollable content still has somewhere to
  * land above the bar instead of hiding behind it.
+ *
+ * A `<Tabs.Screen options={{ href: null }}>` (e.g. app/cashier's Dashboard/
+ * Tickets/Bar, hidden from a real cashier) never actually removes that route
+ * from `state.routes` — expo-router's `href` shortcut only rewrites it to
+ * `tabBarItemStyle: { display: "none" }` plus a no-op `tabBarButton`, both of
+ * which the STOCK bottom-tab-bar component reads. A custom `tabBar` render
+ * prop like this one bypasses that component entirely, so a naive
+ * `state.routes.map(...)` would render the "hidden" tab anyway. Filtering on
+ * that same `tabBarItemStyle` flag here is what actually hides it.
  */
 export function TabBar({ state, descriptors, navigation, insets }: TabBarProps) {
   const colors = useColors();
@@ -78,6 +87,11 @@ export function TabBar({ state, descriptors, navigation, insets }: TabBarProps) 
         <View style={styles.content}>
           {state.routes.map((route, index) => {
             const { options } = descriptors[route.key];
+            // See the component doc comment: this is the one signal
+            // `href: null` actually leaves behind for a custom tab bar.
+            if (options.tabBarItemStyle && (options.tabBarItemStyle as { display?: string }).display === "none") {
+              return null;
+            }
             const label = options.title ?? route.name;
             const isFocused = state.index === index;
             const focusAnim = getFocusAnim(route.key);
