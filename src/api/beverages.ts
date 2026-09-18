@@ -4,9 +4,11 @@ import type {
   BeverageDashboardResponse,
   BeverageEligibilityResponse,
   EventBeverageLineupResponse,
+  EventOutstandingBeverageResponse,
   HappyHourListResponse,
   HappyHourMutationResponse,
   OrganizerBeverageSalesResponse,
+  RedeemEventBeverageResponse,
 } from "@/types";
 
 /**
@@ -129,21 +131,25 @@ export function listOrganizerBeverageSales(params: ListOrganizerSalesParams) {
   return apiRequest<OrganizerBeverageSalesResponse>(`/beverages/organizer/sales${qs ? `?${qs}` : ""}`);
 }
 
-export interface RedeemBeverageSaleResponse {
-  success: true;
-  data: { _id: string; redeemedAt: string };
+/**
+ * GET /api/beverages/sales/outstanding/:reference — every unclaimed drink on
+ * one order, read-only, BEFORE handing anything over. `reference` is the
+ * barcode a cashier scans at an event's counter (BeverageSale.referenceNumber).
+ */
+export function getOutstandingEventBeverages(reference: string) {
+  return apiRequest<EventOutstandingBeverageResponse>(
+    `/beverages/sales/outstanding/${encodeURIComponent(reference)}`,
+  );
 }
 
 /**
- * POST /api/beverages/sales/:saleId/redeem — marks a pre-paid ("online"
- * channel) drink collected at the counter. Same authorization shape as
- * ticket check-in (admin/organizer/partner/usher — see redeemBeverageSale
- * in beverageSalesController.js). Only valid for a confirmed, not-yet-
- * redeemed, "online"-channel sale; a "manual" one was already handed over
- * when it was rung up and can't be redeemed again.
+ * POST /api/beverages/sales/:saleId/redeem — hands one pre-bought drink over
+ * at an event's counter. Only an event-scoped "cashier" (or usher/admin/
+ * partner) may call this; an organizer can't — see beverageRoutes.js.
  */
-export function redeemBeverageSale(saleId: string) {
-  return apiRequest<RedeemBeverageSaleResponse>(`/beverages/sales/${saleId}/redeem`, {
+export function redeemEventBeverage(saleId: string) {
+  return apiRequest<RedeemEventBeverageResponse>(`/beverages/sales/${encodeURIComponent(saleId)}/redeem`, {
     method: "POST",
   });
 }
+

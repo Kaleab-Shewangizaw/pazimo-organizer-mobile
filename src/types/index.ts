@@ -862,6 +862,94 @@ export interface GenerateEventUsherCodeResponse {
   data: { code: string };
 }
 
+// --- Event cashiers -------------------------------------------------------
+// The event-scoped twin of ushers above (backend/src/controllers/
+// eventCashierController.js, added alongside removing an organizer's own
+// direct beverage-redemption power — an organizer runs the event, it
+// doesn't work the bar). Same code -> per-event-grant shape as ushers, just
+// for handing over beverages instead of scanning tickets. Unlike ushers,
+// account creation is admin OR the event's own organizer.
+
+/** One live grant from GET /api/event-cashiers/my-events. */
+export interface CashierEventGrant {
+  event: {
+    _id: string;
+    title: string;
+    startDate: string;
+    endDate: string;
+    location?: { address?: string; city?: string; country?: string };
+    status: EventStatus;
+    coverImages?: string[];
+  };
+  grantedAt: string;
+}
+
+export interface MyCashierEventsResponse {
+  status: "success";
+  data: CashierEventGrant[];
+}
+
+/** POST /api/event-cashiers/unlock-event { code } */
+export interface UnlockCashierEventResponse {
+  status: "success";
+  data: { event: CashierEventGrant["event"]; grantedAt: string };
+}
+
+/** One cashier currently holding a live grant, as returned alongside the code below. */
+export interface EventCashierAccessGrant {
+  accessId: string;
+  cashier: { firstName: string; lastName: string; email: string; phoneNumber: string };
+  grantedAt: string;
+}
+
+/** GET /api/event-cashiers/events/:eventId/code */
+export interface EventCashierAccessResponse {
+  status: "success";
+  data: {
+    code: string | null;
+    codeUpdatedAt: string | null;
+    cashiers: EventCashierAccessGrant[];
+  };
+}
+
+/** POST /api/event-cashiers/events/:eventId/code — (re)generates the event's code. */
+export interface GenerateEventCashierCodeResponse {
+  status: "success";
+  data: { code: string };
+}
+
+// --- Event beverage door/counter scanner ----------------------------------
+// backend/src/controllers/beverageSalesController.js (getOutstandingByReference,
+// redeemBeverageSale) — the event-side twin of the cinema and venue counter
+// scanners above. A door has only the barcode it just scanned, not the
+// buyer's account, so this is looked up by BeverageSale.referenceNumber
+// (e.g. "EV-7K2QXM", printed as a literal barcode, not a JSON QR payload —
+// see backend/src/utils/barcodeRenderer.js) rather than by customer.
+
+export interface EventOutstandingBeverageItem {
+  _id: string;
+  referenceNumber?: string;
+  beverageName: string;
+  quantity: number;
+  unitPrice?: number;
+  totalAmount?: number;
+  soldAt?: string;
+}
+
+export interface EventOutstandingBeverageResponse {
+  success: true;
+  data: EventOutstandingBeverageItem[];
+  /** Whether `now` is past the event's end plus the 12-hour grace window —
+   * computed server-side (the same gate redeemBeverageSale enforces) so the
+   * scanner can show "Expired" before staff ever tap Hand over. */
+  isExpired: boolean;
+}
+
+export interface RedeemEventBeverageResponse {
+  success: true;
+  data: EventOutstandingBeverageItem & { redeemedAt: string };
+}
+
 /**
  * The flat ticket summary POST /api/tickets/validate-qr returns — read
  * directly off `backend/src/controllers/ticketController.js`'s

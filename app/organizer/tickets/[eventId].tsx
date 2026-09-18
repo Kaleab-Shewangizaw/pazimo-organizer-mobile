@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -13,6 +13,7 @@ import { ListRow } from "@/components/ListRow";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { StatTile } from "@/components/StatTile";
 import { TextField } from "@/components/TextField";
+import { CashierCodeSheet } from "@/components/CashierCodeSheet";
 import { UsherCodeSheet } from "@/components/UsherCodeSheet";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
@@ -57,6 +58,7 @@ export default function EventTicketsScreen() {
   const [search, setSearch] = useState("");
   const [ticketsRevealed, setTicketsRevealed] = useState(false);
   const [usherCodeOpen, setUsherCodeOpen] = useState(false);
+  const [cashierCodeOpen, setCashierCodeOpen] = useState(false);
 
   const statsQuery = useQuery({
     queryKey: ["event-tickets", eventId, "stats"],
@@ -111,16 +113,11 @@ export default function EventTicketsScreen() {
           {title ?? "Ticket sales"}
         </Text>
         <Pressable
-          onPress={() =>
-            router.push({
-              pathname: "/organizer/redeem-drink/[eventId]",
-              params: { eventId, eventTitle: title ?? "" },
-            })
-          }
+          onPress={() => setCashierCodeOpen(true)}
           hitSlop={12}
           style={styles.iconButton}
           accessibilityRole="button"
-          accessibilityLabel="Redeem a drink"
+          accessibilityLabel="Cashier code"
         >
           <Ionicons name="bag-check-outline" size={20} color={colors.ink} />
         </Pressable>
@@ -135,6 +132,11 @@ export default function EventTicketsScreen() {
         </Pressable>
       </View>
 
+      <CashierCodeSheet
+        eventId={eventId}
+        visible={cashierCodeOpen}
+        onClose={() => setCashierCodeOpen(false)}
+      />
       <UsherCodeSheet
         eventId={eventId}
         visible={usherCodeOpen}
