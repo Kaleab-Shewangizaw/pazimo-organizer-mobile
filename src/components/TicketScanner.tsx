@@ -4,7 +4,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { LinearGradient } from "expo-linear-gradient";
 import { useIsFocused } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { checkInTicket, validateTicketQr } from "@/api/tickets";
@@ -170,15 +170,27 @@ export function TicketScanner({
   }
 
   if (!permission.granted) {
+    // Once the user has denied camera access enough times (or checked
+    // "Don't ask again" on Android), the OS stops showing the permission
+    // dialog at all — requestPermission() then resolves instantly with
+    // granted: false, so "Grant access" would silently do nothing forever.
+    // canAskAgain tells us we're in that state and have to send the usher
+    // to Settings instead of retrying in-app.
     return (
       <SafeAreaView style={styles.permissionSafeArea}>
         <View style={styles.permissionContent}>
           <Ionicons name="camera-outline" size={40} color={colors.ink} />
           <Text style={styles.permissionTitle}>Camera access needed</Text>
           <Text style={styles.permissionBody}>
-            Pazimo needs your camera to scan ticket QR codes at the door.
+            {permission.canAskAgain
+              ? "Pazimo needs your camera to scan ticket QR codes at the door."
+              : "Camera access was denied. Enable it for Pazimo in your device Settings to scan tickets."}
           </Text>
-          <ScannerButton label="Grant access" onPress={requestPermission} />
+          {permission.canAskAgain ? (
+            <ScannerButton label="Grant access" onPress={requestPermission} />
+          ) : (
+            <ScannerButton label="Open Settings" onPress={() => Linking.openSettings()} />
+          )}
           {onBack ? (
             <Text style={styles.back} onPress={onBack} accessibilityRole="link">
               ‹ Back

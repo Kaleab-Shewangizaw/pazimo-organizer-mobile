@@ -5,6 +5,7 @@ import { useIsFocused } from "expo-router";
 import { useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -399,15 +400,23 @@ export function CinemaScanner({ onBack }: { onBack?: () => void }) {
   }
 
   if (!permission.granted) {
+    // See TicketScanner: once the OS stops offering the permission dialog
+    // (canAskAgain: false), "Grant access" would silently do nothing.
     return (
       <SafeAreaView style={styles.permissionSafeArea}>
         <View style={styles.permissionContent}>
           <Ionicons name="camera-outline" size={40} color={colors.ink} />
           <Text style={styles.permissionTitle}>Camera access needed</Text>
           <Text style={styles.permissionBody}>
-            Pazimo needs your camera to scan ticket, order and pickup codes at the counter.
+            {permission.canAskAgain
+              ? "Pazimo needs your camera to scan ticket, order and pickup codes at the counter."
+              : "Camera access was denied. Enable it for Pazimo in your device Settings to scan codes."}
           </Text>
-          <ScannerButton label="Grant access" onPress={requestPermission} />
+          {permission.canAskAgain ? (
+            <ScannerButton label="Grant access" onPress={requestPermission} />
+          ) : (
+            <ScannerButton label="Open Settings" onPress={() => Linking.openSettings()} />
+          )}
           {onBack ? (
             <Text style={styles.back} onPress={onBack} accessibilityRole="link">
               ‹ Back

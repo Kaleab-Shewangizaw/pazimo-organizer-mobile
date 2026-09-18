@@ -3,7 +3,15 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { LinearGradient } from "expo-linear-gradient";
 import { useIsFocused } from "expo-router";
 import { useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getOutstandingEventBeverages, redeemEventBeverage } from "@/api/beverages";
@@ -154,15 +162,23 @@ export function EventBeverageScanner({
   }
 
   if (!permission.granted) {
+    // See TicketScanner: once the OS stops offering the permission dialog
+    // (canAskAgain: false), "Grant access" would silently do nothing.
     return (
       <SafeAreaView style={styles.permissionSafeArea}>
         <View style={styles.permissionContent}>
           <Ionicons name="camera-outline" size={40} color={colors.ink} />
           <Text style={styles.permissionTitle}>Camera access needed</Text>
           <Text style={styles.permissionBody}>
-            Pazimo needs your camera to scan pickup codes at the counter.
+            {permission.canAskAgain
+              ? "Pazimo needs your camera to scan pickup codes at the counter."
+              : "Camera access was denied. Enable it for Pazimo in your device Settings to scan codes."}
           </Text>
-          <ScannerButton label="Grant access" onPress={requestPermission} />
+          {permission.canAskAgain ? (
+            <ScannerButton label="Grant access" onPress={requestPermission} />
+          ) : (
+            <ScannerButton label="Open Settings" onPress={() => Linking.openSettings()} />
+          )}
         </View>
       </SafeAreaView>
     );
