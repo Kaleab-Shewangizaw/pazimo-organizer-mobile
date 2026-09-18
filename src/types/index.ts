@@ -75,6 +75,17 @@ export interface UpdatePasswordResponse {
 }
 
 /**
+ * PUT /api/auth/update-password (authController.updatePassword) — the
+ * generic, role-agnostic twin of updateOrganizerPassword's
+ * `/organizers/security`. Same fields, different envelope key (`status`,
+ * not `success`) since it's a different handler.
+ */
+export interface AuthUpdatePasswordResponse {
+  status: "success";
+  message: string;
+}
+
+/**
  * Backend: notificationPreferences on the User model (backend/src/models/User.js).
  * Stored for every role, not organizer-specific — GET/PUT
  * /api/auth/notification-preferences (authController.js) works for any

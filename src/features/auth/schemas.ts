@@ -21,6 +21,15 @@ export const organizerAccountSchema = z.object({
 });
 export type OrganizerAccountValues = z.infer<typeof organizerAccountSchema>;
 
+// Cashier/usher accounts have no organization or editable phone — their
+// whole edit-profile surface is a name, unlike editOrganizerProfileSchema
+// below.
+export const editNameSchema = z.object({
+  firstName: z.string().trim().min(1, "Enter your first name"),
+  lastName: z.string().trim().min(1, "Enter your last name"),
+});
+export type EditNameValues = z.infer<typeof editNameSchema>;
+
 export const editOrganizerProfileSchema = z.object({
   firstName: z.string().trim().min(1, "Enter your first name"),
   lastName: z.string().trim().min(1, "Enter your last name"),

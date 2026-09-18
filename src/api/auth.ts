@@ -1,5 +1,6 @@
 import { apiRequest } from "@/api/client";
 import type {
+  AuthUpdatePasswordResponse,
   LoginResponse,
   MeResponse,
   NotificationPreferences,
@@ -30,6 +31,34 @@ export function login(email: string, password: string) {
 
 export function getCurrentUser() {
   return apiRequest<MeResponse>("/auth/me");
+}
+
+/**
+ * PUT /api/auth/update-profile (authController.updateProfile) — role-agnostic,
+ * unlike updateOrganizerProfile's /organizers/profile. For a cashier/usher,
+ * whose account is just a name and a password, this is the whole edit
+ * surface: no organization, no phone (the login identifier isn't editable
+ * here on any role). Email is passed through so a name-only edit can't
+ * accidentally null it out — the backend only checks uniqueness when an
+ * email is actually present in the body.
+ */
+export function updateProfile(input: { firstName: string; lastName: string; email?: string }) {
+  return apiRequest<MeResponse>("/auth/update-profile", {
+    method: "PUT",
+    body: { ...input },
+  });
+}
+
+/**
+ * PUT /api/auth/update-password (authController.updatePassword) —
+ * role-agnostic, unlike updateOrganizerPassword's /organizers/security.
+ * Rejects with a 400 ApiError if currentPassword is wrong.
+ */
+export function updatePassword(input: { currentPassword: string; newPassword: string }) {
+  return apiRequest<AuthUpdatePasswordResponse>("/auth/update-password", {
+    method: "PUT",
+    body: { ...input },
+  });
 }
 
 /**
