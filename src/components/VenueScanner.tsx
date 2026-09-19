@@ -54,7 +54,11 @@ function errorMessage(error: unknown, fallback: string): string {
 export function VenueScanner({ venueId, onBack }: { venueId: string; onBack?: () => void }) {
   const isFocused = useIsFocused();
   const tabBarHeight = useTabBarHeight();
-  const [permission, requestPermission] = useCameraPermissions();
+  // request: true fires the native OS permission dialog itself the moment
+  // this screen mounts (a no-op if already granted/permanently denied) —
+  // staff get the system popup instantly instead of tapping through our
+  // own "Grant access" screen first.
+  const [permission, requestPermission] = useCameraPermissions({ request: true });
 
   const [pending, setPending] = useState<Pending>(null);
   const [outcome, setOutcome] = useState<Outcome>(null);

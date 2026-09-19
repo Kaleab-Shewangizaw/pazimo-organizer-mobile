@@ -108,7 +108,11 @@ export function TicketScanner({
 }) {
   const isFocused = useIsFocused();
   const tabBarHeight = useTabBarHeight();
-  const [permission, requestPermission] = useCameraPermissions();
+  // request: true fires the native OS permission dialog itself the moment
+  // this screen mounts (a no-op if already granted/permanently denied) —
+  // ushers get the system popup instantly instead of tapping through our
+  // own "Grant access" screen first.
+  const [permission, requestPermission] = useCameraPermissions({ request: true });
   const [state, setState] = useState<ScanState>({ stage: "scanning" });
   const [count, setCount] = useState(1);
 
