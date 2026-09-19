@@ -12,6 +12,7 @@ import { useTabBarHeight } from "@/components/TabBarHeightProvider";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { darkColors } from "@/lib/theme";
+import { ApiError } from "@/types";
 import type { ScannedTicketInfo } from "@/types";
 
 /**
@@ -128,7 +129,11 @@ export function TicketScanner({
         });
         return;
       }
-      setCount(Math.max(1, response.data.ticketCount || 1));
+      // Always start at 1, never at the ticket's full remaining count — a
+      // group ticket that admits 3 must not default to checking all 3 in on
+      // whoever happens to scan first. The usher taps "+" for each
+      // additional person actually standing in front of them right now.
+      setCount(1);
       setState({ stage: "reviewing", ticket: response.data });
     },
     onError: (error) => {
@@ -154,7 +159,18 @@ export function TicketScanner({
             : undefined,
       });
     },
-    onError: (error) => {
+    onError: (error, { ticket }) => {
+      // httpStatus === null means the request never got a response at all
+      // (dropped connection — common on patchy door wifi), not that the
+      // server rejected it. The check-in call itself is safe to have landed
+      // even though we never saw the reply, so re-validating instead of
+      // just showing a scary error tells the usher what actually happened:
+      // either it's now correctly "already checked in" (it went through)
+      // or it's still sitting there ready to confirm (it didn't).
+      if (error instanceof ApiError && error.httpStatus === null) {
+        validateMutation.mutate(ticket.ticketId);
+        return;
+      }
       setState({ stage: "result", ...classifyScanError(error) });
     },
   });
