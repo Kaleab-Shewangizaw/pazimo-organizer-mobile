@@ -108,6 +108,7 @@ export default function WelcomeScreen() {
           title={copy.title}
           subtitle={copy.subtitle}
           expectedRole={copy.expectedRole}
+          showCreateAccount={tab === "staff" && staffRole === "usher"}
           embedded
         />
       </View>

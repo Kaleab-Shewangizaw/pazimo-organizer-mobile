@@ -65,7 +65,7 @@ export default function OrganizerSecurityScreen() {
           value={currentPassword}
           onChangeText={setCurrentPassword}
           error={fieldErrors.currentPassword}
-          secureTextEntry
+          isPassword
           autoComplete="current-password"
         />
         <TextField
@@ -73,7 +73,7 @@ export default function OrganizerSecurityScreen() {
           value={newPassword}
           onChangeText={setNewPassword}
           error={fieldErrors.newPassword}
-          secureTextEntry
+          isPassword
           autoComplete="new-password"
         />
         <TextField
@@ -81,7 +81,7 @@ export default function OrganizerSecurityScreen() {
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           error={fieldErrors.confirmPassword}
-          secureTextEntry
+          isPassword
           autoComplete="new-password"
         />
 

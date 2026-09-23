@@ -59,6 +59,12 @@ interface LoginFormProps {
   embedded?: boolean;
   /** The only role(s) this particular tab/screen accepts — see assertExpectedRole above. */
   expectedRole?: UserRole | UserRole[];
+  /**
+   * Shows a "Create account" link to /usher-signup below the form — only
+   * ushers can self-register today (see usherSignUp in src/api/ushers.ts);
+   * organizers and cashiers still need an account handed to them.
+   */
+  showCreateAccount?: boolean;
 }
 
 /**
@@ -75,7 +81,13 @@ interface LoginFormProps {
  * there, selectable, above a code-entry form that's already answering for
  * a specific role.
  */
-export function LoginForm({ title, subtitle, embedded, expectedRole }: LoginFormProps) {
+export function LoginForm({
+  title,
+  subtitle,
+  embedded,
+  expectedRole,
+  showCreateAccount,
+}: LoginFormProps) {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const signIn = useAuthStore((s) => s.signIn);
@@ -143,7 +155,7 @@ export function LoginForm({ title, subtitle, embedded, expectedRole }: LoginForm
         value={password}
         onChangeText={setPassword}
         error={fieldErrors.password}
-        secureTextEntry
+        isPassword
         autoComplete="password"
         placeholder="••••••••"
       />
@@ -158,6 +170,15 @@ export function LoginForm({ title, subtitle, embedded, expectedRole }: LoginForm
       <Link href="/forgot-password" style={styles.forgotLink}>
         Forgot password?
       </Link>
+
+      {showCreateAccount ? (
+        <Text style={styles.createAccountRow}>
+          Don't have an account?{" "}
+          <Link href="/usher-signup" style={styles.createAccountLink}>
+            Create one
+          </Link>
+        </Text>
+      ) : null}
     </View>
   );
 
@@ -208,5 +229,16 @@ const createStyles = (colors: ThemeColors) =>
       fontWeight: "600",
       textAlign: "center",
       marginTop: 4,
+    },
+    createAccountRow: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      color: colors.textMuted,
+      textAlign: "center",
+      marginTop: 12,
+    },
+    createAccountLink: {
+      color: colors.ink,
+      fontWeight: "600",
     },
   });

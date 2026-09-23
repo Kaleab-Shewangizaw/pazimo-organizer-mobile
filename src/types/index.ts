@@ -842,7 +842,7 @@ export interface UnlockEventResponse {
 /** One usher currently holding a live grant, as returned alongside the code below. */
 export interface EventUsherAccessGrant {
   accessId: string;
-  usher: { firstName: string; lastName: string; email: string; phoneNumber: string };
+  usher: { _id: string; firstName: string; lastName: string; email: string; phoneNumber: string };
   grantedAt: string;
 }
 
@@ -861,6 +861,27 @@ export interface GenerateEventUsherCodeResponse {
   status: "success";
   data: { code: string };
 }
+
+/** PATCH /api/ushers/events/:eventId/access/:usherId/revoke */
+export interface RevokeUsherAccessResponse {
+  status: "success";
+  data: { accessId: string; revokedAt: string };
+}
+
+export interface UsherSignUpInput {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  password: string;
+}
+
+/**
+ * POST /api/ushers/sign-up — public, no auth. Same success envelope as a
+ * password login (no requiresOtp branch: ushers never get the organizer 2FA
+ * step), so the client can sign the person in immediately after sign-up.
+ */
+export type UsherSignUpResponse = Extract<LoginResponse, { requiresOtp?: false }>;
 
 // --- Event cashiers -------------------------------------------------------
 // The event-scoped twin of ushers above (backend/src/controllers/

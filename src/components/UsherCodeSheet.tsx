@@ -2,16 +2,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import { useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { generateEventUsherCode, getEventUsherAccess } from "@/api/ushers";
+import { generateEventUsherCode, getEventUsherAccess, revokeUsherAccess } from "@/api/ushers";
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { accentAlt, type ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
+import type { EventUsherAccessGrant } from "@/types";
 
 interface UsherCodeSheetProps {
   eventId: string;
@@ -22,16 +24,18 @@ interface UsherCodeSheetProps {
 /**
  * Bottom sheet where an organizer sees, copies, and (re)generates the short
  * code ushers redeem to unlock ticket scanning for this event (GET/POST
- * /api/ushers/events/:eventId/code — usherController.js). Opened from the
- * key icon in the event tickets screen's header. Regenerating only changes
- * what a *new* redemption needs; ushers who already unlocked this event keep
- * their access (unlockEvent doesn't re-check the code, and revoking is a
- * separate endpoint this sheet doesn't touch).
+ * /api/ushers/events/:eventId/code — usherController.js), plus who currently
+ * holds a live grant from it and a way to revoke one person's access
+ * (PATCH .../access/:usherId/revoke). Opened from the key icon in the event
+ * tickets screen's header. Regenerating the code only changes what a *new*
+ * redemption needs — it doesn't touch anyone already granted access, which
+ * is why revoke is a separate, per-person action below.
  */
 export function UsherCodeSheet({ eventId, visible, onClose }: UsherCodeSheetProps) {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [copied, setCopied] = useState(false);
+  const [revokeTarget, setRevokeTarget] = useState<EventUsherAccessGrant | null>(null);
 
   const query = useQuery({
     queryKey: ["usher-code", eventId],
@@ -42,6 +46,14 @@ export function UsherCodeSheet({ eventId, visible, onClose }: UsherCodeSheetProp
   const generateMutation = useMutation({
     mutationFn: () => generateEventUsherCode(eventId),
     onSuccess: () => query.refetch(),
+  });
+
+  const revokeMutation = useMutation({
+    mutationFn: (usherId: string) => revokeUsherAccess(eventId, usherId),
+    onSuccess: () => {
+      setRevokeTarget(null);
+      query.refetch();
+    },
   });
 
   async function copyCode(code: string) {
@@ -66,11 +78,13 @@ export function UsherCodeSheet({ eventId, visible, onClose }: UsherCodeSheetProp
   }
 
   const generateError = generateMutation.isError ? bannerMessageFor(generateMutation.error) : null;
+  const revokeError = revokeMutation.isError ? bannerMessageFor(revokeMutation.error) : null;
   const loadError = query.isError ? bannerMessageFor(query.error) : null;
 
   const data = query.data?.data;
   const code = data?.code ?? null;
-  const usherCount = data?.ushers.length ?? 0;
+  const ushers = data?.ushers ?? [];
+  const usherCount = ushers.length;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -99,6 +113,7 @@ export function UsherCodeSheet({ eventId, visible, onClose }: UsherCodeSheetProp
 
           {loadError ? <Banner kind="error" message={loadError} /> : null}
           {generateError ? <Banner kind="error" message={generateError} /> : null}
+          {revokeError ? <Banner kind="error" message={revokeError} /> : null}
 
           {query.isPending ? (
             <ActivityIndicator color={accentAlt(colors)} style={styles.loading} />
@@ -112,10 +127,45 @@ export function UsherCodeSheet({ eventId, visible, onClose }: UsherCodeSheetProp
                 ))}
               </View>
 
+              <Text style={styles.usherCount}>
+                {usherCount === 0
+                  ? "No ushers have access yet"
+                  : `${usherCount} usher${usherCount === 1 ? "" : "s"} currently have access`}
+              </Text>
+
               {usherCount > 0 ? (
-                <Text style={styles.usherCount}>
-                  {usherCount} usher{usherCount === 1 ? "" : "s"} currently have access
-                </Text>
+                <ScrollView style={styles.usherList} nestedScrollEnabled>
+                  {ushers.map((grant) => {
+                    const isRevoking =
+                      revokeMutation.isPending && revokeMutation.variables === grant.usher._id;
+                    return (
+                      <View key={grant.accessId} style={styles.usherRow}>
+                        <View style={styles.usherInfo}>
+                          <Text style={styles.usherName} numberOfLines={1}>
+                            {grant.usher.firstName} {grant.usher.lastName}
+                          </Text>
+                          <Text style={styles.usherEmail} numberOfLines={1}>
+                            {grant.usher.email}
+                          </Text>
+                        </View>
+                        <Pressable
+                          onPress={() => setRevokeTarget(grant)}
+                          disabled={revokeMutation.isPending}
+                          hitSlop={8}
+                          style={styles.revokeButton}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Revoke access for ${grant.usher.firstName} ${grant.usher.lastName}`}
+                        >
+                          {isRevoking ? (
+                            <ActivityIndicator size="small" color={colors.error} />
+                          ) : (
+                            <Ionicons name="person-remove-outline" size={18} color={colors.error} />
+                          )}
+                        </Pressable>
+                      </View>
+                    );
+                  })}
+                </ScrollView>
               ) : null}
 
               <View style={styles.actionRow}>
@@ -149,6 +199,20 @@ export function UsherCodeSheet({ eventId, visible, onClose }: UsherCodeSheetProp
           )}
         </View>
       </SafeAreaView>
+
+      <ConfirmDialog
+        visible={revokeTarget !== null}
+        title="Revoke access?"
+        message={
+          revokeTarget
+            ? `${revokeTarget.usher.firstName} ${revokeTarget.usher.lastName} will need a new code to scan this event again.`
+            : undefined
+        }
+        confirmLabel="Revoke"
+        destructive
+        onConfirm={() => revokeTarget && revokeMutation.mutate(revokeTarget.usher._id)}
+        onCancel={() => setRevokeTarget(null)}
+      />
     </Modal>
   );
 }
@@ -232,6 +296,39 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 12,
       color: colors.textMuted,
       textAlign: "center",
+    },
+    usherList: {
+      maxHeight: 220,
+    },
+    usherRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    usherInfo: {
+      flex: 1,
+      gap: 2,
+    },
+    usherName: {
+      fontFamily: fonts.semibold,
+      fontSize: 14,
+      color: colors.ink,
+    },
+    usherEmail: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    revokeButton: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.surfaceAlt,
     },
     actionRow: {
       flexDirection: "row",

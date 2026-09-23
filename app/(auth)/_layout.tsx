@@ -17,6 +17,7 @@ export default function AuthLayout() {
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="organizer-login" options={{ title: "" }} />
       <Stack.Screen name="usher-login" options={{ title: "" }} />
+      <Stack.Screen name="usher-signup" options={{ title: "Create usher account" }} />
       <Stack.Screen name="cashier-login" options={{ title: "" }} />
       <Stack.Screen name="verify-otp" options={{ title: "" }} />
       <Stack.Screen

@@ -239,7 +239,7 @@ function AccountStep({
         value={value.password}
         onChangeText={(password) => onChange({ ...value, password })}
         error={errors.password}
-        secureTextEntry
+        isPassword
         placeholder="At least 8 characters"
       />
       <Button label="Continue" onPress={onNext} style={styles.primaryAction} />

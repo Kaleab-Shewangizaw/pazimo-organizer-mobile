@@ -67,7 +67,7 @@ export default function CashierSecurityScreen() {
           value={currentPassword}
           onChangeText={setCurrentPassword}
           error={fieldErrors.currentPassword}
-          secureTextEntry
+          isPassword
           autoComplete="current-password"
         />
         <TextField
@@ -75,7 +75,7 @@ export default function CashierSecurityScreen() {
           value={newPassword}
           onChangeText={setNewPassword}
           error={fieldErrors.newPassword}
-          secureTextEntry
+          isPassword
           autoComplete="new-password"
         />
         <TextField
@@ -83,7 +83,7 @@ export default function CashierSecurityScreen() {
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           error={fieldErrors.confirmPassword}
-          secureTextEntry
+          isPassword
           autoComplete="new-password"
         />
 
