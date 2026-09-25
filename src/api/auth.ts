@@ -17,14 +17,16 @@ import type {
 } from "@/types";
 
 /**
- * POST /api/auth/login. For an organizer account this returns
- * `requiresOtp: true` with no token — the caller must follow up with
- * verifyOrganizerOtp(email, code) using the email echoed back here.
+ * POST /api/auth/login. `identifier` is an email or phone number — same
+ * email-or-phone lookup as forgotPassword (backend's findUserByIdentifier).
+ * For an organizer account this returns `requiresOtp: true` with no token —
+ * the caller must follow up with verifyOrganizerOtp(email, code) using the
+ * email echoed back here.
  */
-export function login(email: string, password: string) {
+export function login(identifier: string, password: string) {
   return apiRequest<LoginResponse>("/auth/login", {
     method: "POST",
-    body: { email, password },
+    body: { identifier, password },
     auth: false,
   });
 }

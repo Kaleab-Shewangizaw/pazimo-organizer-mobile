@@ -8,7 +8,7 @@ import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { Screen } from "@/components/Screen";
 import { TextField } from "@/components/TextField";
-import { loginSchema } from "@/features/auth/schemas";
+import { loginSchema, usherLoginSchema } from "@/features/auth/schemas";
 import { bannerMessageFor, VALIDATION_ERROR_MESSAGE } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import type { ThemeColors } from "@/lib/theme";
@@ -65,15 +65,23 @@ interface LoginFormProps {
    * organizers and cashiers still need an account handed to them.
    */
   showCreateAccount?: boolean;
+  /**
+   * Ushers have no email on their account at all (see usherSignUpSchema) —
+   * they sign in with their phone number instead. Every other role keeps
+   * the default email+password field. Defaults to "email".
+   */
+  identifierField?: "email" | "phone";
 }
 
 /**
  * Shared by every role's *-login.tsx screen and the embedded sign-in flow —
- * all are plain email+password against the same POST /api/auth/login, and
- * the backend decides the account's real role and whether a second factor
- * is required (organizer accounts only, today). `expectedRole` is enforced
- * client-side on top of that (see assertExpectedRole) so the tab/screen
- * copy is never misleading about who actually gets signed in.
+ * all post to the same POST /api/auth/login with a password plus one
+ * identifier field (email for organizer/cashier, phone number for ushers —
+ * see identifierField), and the backend decides the account's real role and
+ * whether a second factor is required (organizer accounts only, today).
+ * `expectedRole` is enforced client-side on top of that (see
+ * assertExpectedRole) so the tab/screen copy is never misleading about who
+ * actually gets signed in.
  *
  * Organizer 2FA (requiresOtp) navigates to its own /verify-otp page rather
  * than swapping content in place here — otherwise, when embedded on the
@@ -87,27 +95,36 @@ export function LoginForm({
   embedded,
   expectedRole,
   showCreateAccount,
+  identifierField = "email",
 }: LoginFormProps) {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const signIn = useAuthStore((s) => s.signIn);
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const parsed = loginSchema.safeParse({ email, password });
+      const parsed =
+        identifierField === "phone"
+          ? usherLoginSchema.safeParse({ phoneNumber: identifier, password })
+          : loginSchema.safeParse({ email: identifier, password });
       if (!parsed.success) {
         const errors: Record<string, string> = {};
         for (const issue of parsed.error.issues) {
-          errors[String(issue.path[0])] = issue.message;
+          // usherLoginSchema's field is "phoneNumber"; loginSchema's is
+          // "email" — either way the form only has one identifier field, so
+          // its error always goes on "identifier".
+          const key = String(issue.path[0]);
+          errors[key === "password" ? "password" : "identifier"] = issue.message;
         }
         setFieldErrors(errors);
         throw new Error(VALIDATION_ERROR_MESSAGE);
       }
       setFieldErrors({});
-      const res = await login(parsed.data.email, parsed.data.password);
+      const value = "email" in parsed.data ? parsed.data.email : parsed.data.phoneNumber;
+      const res = await login(value, parsed.data.password);
       if (res.requiresOtp) {
         // requiresOtp only ever fires for role === "organizer" (see
         // authController.js login()) — so reaching here already tells us
@@ -140,16 +157,28 @@ export function LoginForm({
     <View style={styles.form}>
       {topLevelError ? <Banner kind="error" message={topLevelError} /> : null}
 
-      <TextField
-        label="Email"
-        value={email}
-        onChangeText={setEmail}
-        error={fieldErrors.email}
-        autoCapitalize="none"
-        autoComplete="email"
-        keyboardType="email-address"
-        placeholder="you@example.com"
-      />
+      {identifierField === "phone" ? (
+        <TextField
+          label="Phone number"
+          value={identifier}
+          onChangeText={setIdentifier}
+          error={fieldErrors.identifier}
+          keyboardType="phone-pad"
+          autoComplete="tel"
+          placeholder="0912345678"
+        />
+      ) : (
+        <TextField
+          label="Email"
+          value={identifier}
+          onChangeText={setIdentifier}
+          error={fieldErrors.identifier}
+          autoCapitalize="none"
+          autoComplete="email"
+          keyboardType="email-address"
+          placeholder="you@example.com"
+        />
+      )}
       <TextField
         label="Password"
         value={password}

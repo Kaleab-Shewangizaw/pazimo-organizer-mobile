@@ -43,7 +43,6 @@ export default function UsherAccountScreen() {
         <Text style={styles.role}>Usher</Text>
 
         <View style={styles.section}>
-          <InfoRow colors={colors} label="Email" value={user?.email ?? "—"} />
           <InfoRow colors={colors} label="Phone" value={user?.phoneNumber ?? "—"} last />
         </View>
       </ScrollView>

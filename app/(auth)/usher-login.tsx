@@ -7,6 +7,7 @@ export default function UsherLoginScreen() {
       subtitle="Scan tickets for the event you've been assigned to"
       expectedRole="usher"
       showCreateAccount
+      identifierField="phone"
     />
   );
 }

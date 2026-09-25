@@ -18,7 +18,6 @@ import { useAuthStore } from "@/store/authStore";
 const EMPTY_VALUES: UsherSignUpValues = {
   firstName: "",
   lastName: "",
-  email: "",
   phoneNumber: "",
   password: "",
   confirmPassword: "",
@@ -59,7 +58,6 @@ export default function UsherSignUpScreen() {
       const res = await usherSignUp({
         firstName: parsed.data.firstName,
         lastName: parsed.data.lastName,
-        email: parsed.data.email,
         phoneNumber: parsed.data.phoneNumber,
         password: parsed.data.password,
       });
@@ -104,16 +102,6 @@ export default function UsherSignUpScreen() {
           </View>
         </View>
 
-        <TextField
-          label="Email"
-          value={values.email}
-          onChangeText={(v) => set("email", v)}
-          error={fieldErrors.email}
-          autoCapitalize="none"
-          autoComplete="email"
-          keyboardType="email-address"
-          placeholder="you@example.com"
-        />
         <TextField
           label="Phone number"
           value={values.phoneNumber}

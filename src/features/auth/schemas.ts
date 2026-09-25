@@ -46,7 +46,6 @@ export const usherSignUpSchema = z
   .object({
     firstName: z.string().trim().min(1, "Enter your first name"),
     lastName: z.string().trim().min(1, "Enter your last name"),
-    email: z.string().trim().min(1, "Email is required").email("Enter a valid email"),
     phoneNumber: z
       .string()
       .trim()
@@ -59,6 +58,18 @@ export const usherSignUpSchema = z
     path: ["confirmPassword"],
   });
 export type UsherSignUpValues = z.infer<typeof usherSignUpSchema>;
+
+// Ushers sign in with just their phone number — no email on the account at
+// all (see usherSignUpSchema above), unlike organizer/cashier's email+password
+// loginSchema.
+export const usherLoginSchema = z.object({
+  phoneNumber: z
+    .string()
+    .trim()
+    .regex(phoneRegex, "Enter a valid Ethiopian phone number, e.g. 0912345678"),
+  password: z.string().min(1, "Password is required"),
+});
+export type UsherLoginFormValues = z.infer<typeof usherLoginSchema>;
 
 export const organizerOrgSchema = z.object({
   organization: z.string().trim().min(2, "Enter your organization name"),

@@ -33,12 +33,13 @@ const STAFF_ROLES: { value: StaffRole; label: string }[] = [
 /**
  * Matches the reference's structure exactly (tab switcher, inline form,
  * footer disclaimer pinned to the bottom) — but wired to this app's real
- * auth, not the reference's fictional phone-only/staff-ID fields. Every
- * path here is the same LoginForm (email + password against
- * POST /api/auth/login) embedded inline; the Organizer/Usher/Cashier
- * selection only changes which copy is shown, never what's sent — the
- * backend alone decides the account's real role and where
- * app/_layout.tsx routes it afterwards.
+ * auth, not the reference's fictional staff-ID fields. Every path here is
+ * the same LoginForm against POST /api/auth/login, embedded inline; the
+ * Organizer/Usher/Cashier selection changes which copy is shown and which
+ * identifier field is collected (ushers sign in by phone number, everyone
+ * else by email — see LoginForm's identifierField) but never routes
+ * differently — the backend alone decides the account's real role and
+ * where app/_layout.tsx routes it afterwards.
  */
 export default function WelcomeScreen() {
   const colors = useColors();
@@ -47,18 +48,26 @@ export default function WelcomeScreen() {
   const [tab, setTab] = useState<Tab>("organizer");
   const [staffRole, setStaffRole] = useState<StaffRole>("usher");
 
-  const copy: { title: string; subtitle: string; expectedRole: UserRole | UserRole[] } =
+  const copy: {
+    title: string;
+    subtitle: string;
+    expectedRole: UserRole | UserRole[];
+    identifierField: "email" | "phone";
+  } =
     tab === "organizer"
       ? {
           title: "Sign in as Organizer",
           subtitle: "Manage your events and see how they're doing",
           expectedRole: "organizer",
+          identifierField: "email",
         }
       : staffRole === "usher"
         ? {
             title: "Sign in as Usher",
             subtitle: "Scan tickets for the events you're assigned to",
             expectedRole: "usher",
+            // Ushers have no email on their account — see usherSignUpSchema.
+            identifierField: "phone",
           }
         : {
             title: "Sign in as Cashier",
@@ -68,6 +77,7 @@ export default function WelcomeScreen() {
             // "cashier", scoped to a cinema or a venue) — app/cashier's tab
             // layout branches on which one actually signed in.
             expectedRole: ["cinema", "cashier"],
+            identifierField: "email",
           };
 
   return (
@@ -109,6 +119,7 @@ export default function WelcomeScreen() {
           subtitle={copy.subtitle}
           expectedRole={copy.expectedRole}
           showCreateAccount={tab === "staff" && staffRole === "usher"}
+          identifierField={copy.identifierField}
           embedded
         />
       </View>
