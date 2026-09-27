@@ -18,7 +18,7 @@
     "android": {
       "package": "com.pazimo.organizer",
       "adaptiveIcon": {
-        "backgroundColor": "#192A44",
+        "backgroundColor": "#101B32",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
