@@ -2,7 +2,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getEventTickets } from "@/api/tickets";
@@ -143,112 +153,117 @@ export default function EventTicketsScreen() {
         onClose={() => setUsherCodeOpen(false)}
       />
 
-      <FlatList<OrganizerTicket>
-        data={ticketsRevealed ? filtered : []}
-        keyExtractor={(item) => item.ticketId}
-        contentContainerStyle={styles.listContent}
-        ListHeaderComponent={
-          <View style={styles.header}>
-            {cover ? (
-              <Image source={{ uri: cover }} style={styles.heroImage} />
-            ) : (
-              <View style={[styles.heroImage, styles.heroFallback]}>
-                <Text style={styles.heroFallbackInitial}>
-                  {(title ?? "?").charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            )}
-
-            <View style={styles.statsRow}>
-              <StatTile
-                label="Total revenue"
-                value={formatMoney(statistics.totalRevenue, CURRENCY)}
-                accent
-              />
-              <StatTile label="Tickets sold" value={String(statistics.totalTickets)} />
-            </View>
-
-            {statistics.ticketTypeBreakdown.length > 0 ? (
-              <>
-                <Text style={styles.sectionEyebrow}>Ticket types</Text>
-                <View style={styles.typesGrid}>
-                  {statistics.ticketTypeBreakdown.map((row, index) => (
-                    <View key={`${row.ticketType}-${row.isOnDoor}-${index}`} style={styles.typeCard}>
-                      <Text style={styles.typeCardMeta}>{row.isOnDoor ? "On-door" : "Online"}</Text>
-                      <Text style={styles.typeCardName} numberOfLines={1}>
-                        {row.ticketType}
-                      </Text>
-                      <Text style={styles.typeCardPrice}>
-                        {formatMoney(row.pricePerTicket, CURRENCY)} each
-                      </Text>
-                      <View style={styles.typeCardFooter}>
-                        <Text style={styles.typeCardSold}>{row.totalSold} sold</Text>
-                        <Text style={styles.typeCardRevenue}>
-                          {formatMoney(row.totalRevenue, CURRENCY)}
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <FlatList<OrganizerTicket>
+          data={ticketsRevealed ? filtered : []}
+          keyExtractor={(item) => item.ticketId}
+          contentContainerStyle={styles.listContent}
+          ListHeaderComponent={
+            <View style={styles.header}>
+              {cover ? (
+                <Image source={{ uri: cover }} style={styles.heroImage} />
+              ) : (
+                <View style={[styles.heroImage, styles.heroFallback]}>
+                  <Text style={styles.heroFallbackInitial}>
+                    {(title ?? "?").charAt(0).toUpperCase()}
+                  </Text>
                 </View>
-              </>
-            ) : null}
+              )}
 
-            <Text style={styles.sectionEyebrow}>Buyers</Text>
-            {ticketsRevealed ? (
-              <TextField
-                label=""
-                placeholder="Search by name, email, or ticket ID"
-                value={search}
-                onChangeText={setSearch}
-                style={styles.search}
-              />
-            ) : (
+              <View style={styles.statsRow}>
+                <StatTile
+                  label="Total revenue"
+                  value={formatMoney(statistics.totalRevenue, CURRENCY)}
+                  accent
+                />
+                <StatTile label="Tickets sold" value={String(statistics.totalTickets)} />
+              </View>
+
+              {statistics.ticketTypeBreakdown.length > 0 ? (
+                <>
+                  <Text style={styles.sectionEyebrow}>Ticket types</Text>
+                  <View style={styles.typesGrid}>
+                    {statistics.ticketTypeBreakdown.map((row, index) => (
+                      <View key={`${row.ticketType}-${row.isOnDoor}-${index}`} style={styles.typeCard}>
+                        <Text style={styles.typeCardMeta}>{row.isOnDoor ? "On-door" : "Online"}</Text>
+                        <Text style={styles.typeCardName} numberOfLines={1}>
+                          {row.ticketType}
+                        </Text>
+                        <Text style={styles.typeCardPrice}>
+                          {formatMoney(row.pricePerTicket, CURRENCY)} each
+                        </Text>
+                        <View style={styles.typeCardFooter}>
+                          <Text style={styles.typeCardSold}>{row.totalSold} sold</Text>
+                          <Text style={styles.typeCardRevenue}>
+                            {formatMoney(row.totalRevenue, CURRENCY)}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </>
+              ) : null}
+
+              <Text style={styles.sectionEyebrow}>Buyers</Text>
+              {ticketsRevealed ? (
+                <TextField
+                  label=""
+                  placeholder="Search by name, email, or ticket ID"
+                  value={search}
+                  onChangeText={setSearch}
+                  style={styles.search}
+                />
+              ) : (
              
                 
-                <Button
-                  label="Show tickets"
-                  variant="secondary"
-                  onPress={() => setTicketsRevealed(true)}
-                  disabled={statistics.totalTickets === 0}
-                />
+                  <Button
+                    label="Show tickets"
+                    variant="secondary"
+                    onPress={() => setTicketsRevealed(true)}
+                    disabled={statistics.totalTickets === 0}
+                  />
               
-            )}
+              )}
 
-            {ticketsRevealed && listQuery.isError ? (
-              <Banner
-                kind="error"
-                message={bannerMessageFor(listQuery.error) ?? "Couldn't load buyers."}
-              />
-            ) : null}
-          </View>
-        }
-        renderItem={({ item }) => (
-          <ListRow
-            title={item.user?.name?.trim() || "Guest"}
-            subtitle={`${item.ticketType ?? "Ticket"} · ${new Date(item.createdAt).toLocaleDateString()}`}
-            amount={item.price > 0 ? formatMoney(item.price, CURRENCY) : "Free"}
-            statusLabel={item.status}
-            statusColor={STATUS_COLOR(colors)[item.status]}
-          />
-        )}
-        ListEmptyComponent={
-          !ticketsRevealed ? null : listQuery.isPending ? (
-            <View style={styles.loadingRow}>
-              <ActivityIndicator color={accentAlt(colors)} />
-              <Text style={styles.loadingText}>Loading buyers…</Text>
+              {ticketsRevealed && listQuery.isError ? (
+                <Banner
+                  kind="error"
+                  message={bannerMessageFor(listQuery.error) ?? "Couldn't load buyers."}
+                />
+              ) : null}
             </View>
-          ) : listQuery.isError ? null : (
-            <EmptyState
-              title={search ? "No matches" : "No paid tickets yet"}
-              body={
-                search
-                  ? "Try a different name, email, or ticket ID."
-                  : "Ticket sales for this event will show up here."
-              }
+          }
+          renderItem={({ item }) => (
+            <ListRow
+              title={item.user?.name?.trim() || "Guest"}
+              subtitle={`${item.ticketType ?? "Ticket"} · ${new Date(item.createdAt).toLocaleDateString()}`}
+              amount={item.price > 0 ? formatMoney(item.price, CURRENCY) : "Free"}
+              statusLabel={item.status}
+              statusColor={STATUS_COLOR(colors)[item.status]}
             />
-          )
-        }
-      />
+          )}
+          ListEmptyComponent={
+            !ticketsRevealed ? null : listQuery.isPending ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator color={accentAlt(colors)} />
+                <Text style={styles.loadingText}>Loading buyers…</Text>
+              </View>
+            ) : listQuery.isError ? null : (
+              <EmptyState
+                title={search ? "No matches" : "No paid tickets yet"}
+                body={
+                  search
+                    ? "Try a different name, email, or ticket ID."
+                    : "Ticket sales for this event will show up here."
+                }
+              />
+            )
+          }
+        />
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -258,6 +273,9 @@ const createStyles = (colors: ThemeColors) =>
     safeArea: {
       flex: 1,
       backgroundColor: colors.background,
+    },
+    flex: {
+      flex: 1,
     },
     topBar: {
       flexDirection: "row",

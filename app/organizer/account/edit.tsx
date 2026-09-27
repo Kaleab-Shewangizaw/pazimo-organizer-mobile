@@ -3,7 +3,19 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getOrganizerProfile, updateOrganizerProfile, updateOrganizerProfilePicture } from "@/api/organizers";
@@ -135,76 +147,81 @@ export default function OrganizerEditProfileScreen() {
         <Text style={styles.topBarTitle}>Edit profile</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Pressable onPress={pickPhoto} style={styles.avatarWrap} disabled={pictureMutation.isPending}>
-          {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarFallback]}>
-              <Text style={styles.avatarInitial}>
-                {user.firstName?.charAt(0).toUpperCase() ?? "?"}
-              </Text>
-            </View>
-          )}
-          <View style={styles.avatarBadge}>
-            {pictureMutation.isPending ? (
-              <Ionicons name="ellipsis-horizontal" size={14} color={colors.buttonPrimaryText} />
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <Pressable onPress={pickPhoto} style={styles.avatarWrap} disabled={pictureMutation.isPending}>
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatar} />
             ) : (
-              <Ionicons name="camera" size={14} color={colors.buttonPrimaryText} />
+              <View style={[styles.avatar, styles.avatarFallback]}>
+                <Text style={styles.avatarInitial}>
+                  {user.firstName?.charAt(0).toUpperCase() ?? "?"}
+                </Text>
+              </View>
             )}
+            <View style={styles.avatarBadge}>
+              {pictureMutation.isPending ? (
+                <Ionicons name="ellipsis-horizontal" size={14} color={colors.buttonPrimaryText} />
+              ) : (
+                <Ionicons name="camera" size={14} color={colors.buttonPrimaryText} />
+              )}
+            </View>
+          </Pressable>
+          <Text style={styles.changePhotoLabel}>Change photo</Text>
+
+          <View style={styles.form}>
+            {topLevelError ? <Banner kind="error" message={topLevelError} /> : null}
+
+            <TextField
+              label="First name"
+              value={firstName}
+              onChangeText={setFirstName}
+              error={fieldErrors.firstName}
+              autoCapitalize="words"
+            />
+            <TextField
+              label="Last name"
+              value={lastName}
+              onChangeText={setLastName}
+              error={fieldErrors.lastName}
+              autoCapitalize="words"
+            />
+            <TextField
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              error={fieldErrors.email}
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+            />
+            <TextField
+              label="Phone"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              error={fieldErrors.phoneNumber}
+              keyboardType="phone-pad"
+            />
+            <TextField
+              label="Organization"
+              value={organization}
+              onChangeText={setOrganization}
+              error={fieldErrors.organization}
+              autoCapitalize="words"
+            />
+
+            <Button
+              label="Save changes"
+              onPress={() => saveMutation.mutate()}
+              loading={saveMutation.isPending}
+              style={styles.submit}
+            />
           </View>
-        </Pressable>
-        <Text style={styles.changePhotoLabel}>Change photo</Text>
-
-        <View style={styles.form}>
-          {topLevelError ? <Banner kind="error" message={topLevelError} /> : null}
-
-          <TextField
-            label="First name"
-            value={firstName}
-            onChangeText={setFirstName}
-            error={fieldErrors.firstName}
-            autoCapitalize="words"
-          />
-          <TextField
-            label="Last name"
-            value={lastName}
-            onChangeText={setLastName}
-            error={fieldErrors.lastName}
-            autoCapitalize="words"
-          />
-          <TextField
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            error={fieldErrors.email}
-            autoCapitalize="none"
-            autoComplete="email"
-            keyboardType="email-address"
-          />
-          <TextField
-            label="Phone"
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-            error={fieldErrors.phoneNumber}
-            keyboardType="phone-pad"
-          />
-          <TextField
-            label="Organization"
-            value={organization}
-            onChangeText={setOrganization}
-            error={fieldErrors.organization}
-            autoCapitalize="words"
-          />
-
-          <Button
-            label="Save changes"
-            onPress={() => saveMutation.mutate()}
-            loading={saveMutation.isPending}
-            style={styles.submit}
-          />
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       <Modal visible={!!previewUri} transparent animationType="fade" onRequestClose={() => setPreviewUri(null)}>
         <View style={styles.previewBackdrop}>
@@ -279,6 +296,9 @@ const createStyles = (colors: ThemeColors) =>
     safeArea: {
       flex: 1,
       backgroundColor: colors.background,
+    },
+    flex: {
+      flex: 1,
     },
     topBar: {
       flexDirection: "row",

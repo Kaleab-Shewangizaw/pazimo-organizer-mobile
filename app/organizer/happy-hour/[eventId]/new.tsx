@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { createEventHappyHour, getEventBeverageLineup, type CreateHappyHourInput } from "@/api/beverages";
@@ -169,136 +169,141 @@ export default function NewHappyHourScreen() {
         </Text>
       </View>
 
-      {lineupQuery.isPending ? (
-        <LoadingScreen />
-      ) : lineupQuery.isError ? (
-        <View style={styles.errorContainer}>
-          <Banner
-            kind="error"
-            message={bannerMessageFor(lineupQuery.error) ?? "Couldn't load this event's drinks."}
-          />
-          <Button label="Try again" onPress={() => lineupQuery.refetch()} />
-        </View>
-      ) : (
-        (() => {
-          const eligible = lineupQuery.data.data.filter(
-            (row) =>
-              row.beverage &&
-              row.isAvailable &&
-              !row.unavailableReason &&
-              row.happyHourStatus.status !== "active" &&
-              row.happyHourStatus.status !== "scheduled",
-          );
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        {lineupQuery.isPending ? (
+          <LoadingScreen />
+        ) : lineupQuery.isError ? (
+          <View style={styles.errorContainer}>
+            <Banner
+              kind="error"
+              message={bannerMessageFor(lineupQuery.error) ?? "Couldn't load this event's drinks."}
+            />
+            <Button label="Try again" onPress={() => lineupQuery.refetch()} />
+          </View>
+        ) : (
+          (() => {
+            const eligible = lineupQuery.data.data.filter(
+              (row) =>
+                row.beverage &&
+                row.isAvailable &&
+                !row.unavailableReason &&
+                row.happyHourStatus.status !== "active" &&
+                row.happyHourStatus.status !== "scheduled",
+            );
 
-          return (
-            <ScrollView contentContainerStyle={styles.content}>
-              {eligible.length === 0 ? (
-                <EmptyState
-                  title="No drinks available"
-                  body="Every drink on this event is either already in a happy hour or not currently for sale."
-                />
-              ) : (
-                <>
-                  <Text style={styles.sectionLabel}>Pick drinks</Text>
-                  <View style={styles.drinkList}>
-                    {eligible.map((row) => (
-                      <DrinkRow
-                        key={row._id}
-                        colors={colors}
-                        row={row}
-                        selected={row._id in selected}
-                        priceInput={selected[row._id] ?? ""}
-                        onToggle={() => toggleRow(row)}
-                        onChangePrice={(text) =>
-                          setSelected((prev) => ({ ...prev, [row._id]: text }))
-                        }
-                      />
-                    ))}
-                  </View>
+            return (
+              <ScrollView contentContainerStyle={styles.content}>
+                {eligible.length === 0 ? (
+                  <EmptyState
+                    title="No drinks available"
+                    body="Every drink on this event is either already in a happy hour or not currently for sale."
+                  />
+                ) : (
+                  <>
+                    <Text style={styles.sectionLabel}>Pick drinks</Text>
+                    <View style={styles.drinkList}>
+                      {eligible.map((row) => (
+                        <DrinkRow
+                          key={row._id}
+                          colors={colors}
+                          row={row}
+                          selected={row._id in selected}
+                          priceInput={selected[row._id] ?? ""}
+                          onToggle={() => toggleRow(row)}
+                          onChangePrice={(text) =>
+                            setSelected((prev) => ({ ...prev, [row._id]: text }))
+                          }
+                        />
+                      ))}
+                    </View>
 
-                  <Text style={styles.sectionLabel}>Duration</Text>
-                  <View style={styles.durationRow}>
-                    {DURATION_PRESETS.map((minutes) => {
-                      const active = durationChoice === minutes;
-                      return (
-                        <Pressable
-                          key={minutes}
-                          onPress={() => setDurationChoice(minutes)}
-                          style={[styles.durationChip, active && styles.durationChipActive]}
-                        >
-                          <Text
-                            style={[styles.durationChipText, active && styles.durationChipTextActive]}
+                    <Text style={styles.sectionLabel}>Duration</Text>
+                    <View style={styles.durationRow}>
+                      {DURATION_PRESETS.map((minutes) => {
+                        const active = durationChoice === minutes;
+                        return (
+                          <Pressable
+                            key={minutes}
+                            onPress={() => setDurationChoice(minutes)}
+                            style={[styles.durationChip, active && styles.durationChipActive]}
                           >
-                            {minutes < 60 ? `${minutes}m` : `${minutes / 60}h`}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                    <Pressable
-                      onPress={() => setDurationChoice("custom")}
-                      style={[styles.durationChip, durationChoice === "custom" && styles.durationChipActive]}
-                    >
-                      <Text
-                        style={[
-                          styles.durationChipText,
-                          durationChoice === "custom" && styles.durationChipTextActive,
-                        ]}
+                            <Text
+                              style={[styles.durationChipText, active && styles.durationChipTextActive]}
+                            >
+                              {minutes < 60 ? `${minutes}m` : `${minutes / 60}h`}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                      <Pressable
+                        onPress={() => setDurationChoice("custom")}
+                        style={[styles.durationChip, durationChoice === "custom" && styles.durationChipActive]}
                       >
-                        Custom
-                      </Text>
-                    </Pressable>
-                  </View>
-                  {durationChoice === "custom" ? (
-                    <TextField
-                      label="Custom duration (minutes)"
-                      value={customDuration}
-                      onChangeText={setCustomDuration}
-                      keyboardType="number-pad"
-                      placeholder="e.g. 45"
+                        <Text
+                          style={[
+                            styles.durationChipText,
+                            durationChoice === "custom" && styles.durationChipTextActive,
+                          ]}
+                        >
+                          Custom
+                        </Text>
+                      </Pressable>
+                    </View>
+                    {durationChoice === "custom" ? (
+                      <TextField
+                        label="Custom duration (minutes)"
+                        value={customDuration}
+                        onChangeText={setCustomDuration}
+                        keyboardType="number-pad"
+                        placeholder="e.g. 45"
+                      />
+                    ) : null}
+
+                    <Text style={styles.sectionLabel}>Starting</Text>
+                    <SegmentedControl<StartChoice>
+                      options={[
+                        { value: "manual", label: "Start manually" },
+                        { value: "scheduled", label: "Start automatically" },
+                      ]}
+                      value={startChoice}
+                      onChange={setStartChoice}
                     />
-                  ) : null}
-
-                  <Text style={styles.sectionLabel}>Starting</Text>
-                  <SegmentedControl<StartChoice>
-                    options={[
-                      { value: "manual", label: "Start manually" },
-                      { value: "scheduled", label: "Start automatically" },
-                    ]}
-                    value={startChoice}
-                    onChange={setStartChoice}
-                  />
-                  {startChoice === "scheduled" ? (
-                    <Pressable onPress={() => setPickerOpen(true)} style={styles.scheduleButton}>
-                      <Ionicons name="calendar-outline" size={18} color={colors.ink} />
-                      <Text style={styles.scheduleButtonText}>
-                        {scheduledAt ? scheduledAt.toLocaleString() : "Pick a start time"}
+                    {startChoice === "scheduled" ? (
+                      <Pressable onPress={() => setPickerOpen(true)} style={styles.scheduleButton}>
+                        <Ionicons name="calendar-outline" size={18} color={colors.ink} />
+                        <Text style={styles.scheduleButtonText}>
+                          {scheduledAt ? scheduledAt.toLocaleString() : "Pick a start time"}
+                        </Text>
+                      </Pressable>
+                    ) : (
+                      <Text style={styles.helperText}>
+                        You'll start it yourself with the "Start now" button.
                       </Text>
-                    </Pressable>
-                  ) : (
-                    <Text style={styles.helperText}>
-                      You'll start it yourself with the "Start now" button.
-                    </Text>
-                  )}
+                    )}
 
-                  {formError ? <Banner kind="error" message={formError} /> : null}
-                  {createMutation.isError ? (
-                    <Banner
-                      kind="error"
-                      message={bannerMessageFor(createMutation.error) ?? "Couldn't create it."}
+                    {formError ? <Banner kind="error" message={formError} /> : null}
+                    {createMutation.isError ? (
+                      <Banner
+                        kind="error"
+                        message={bannerMessageFor(createMutation.error) ?? "Couldn't create it."}
+                      />
+                    ) : null}
+
+                    <Button
+                      label="Create happy hour"
+                      onPress={() => submit(eligible)}
+                      loading={createMutation.isPending}
                     />
-                  ) : null}
-
-                  <Button
-                    label="Create happy hour"
-                    onPress={() => submit(eligible)}
-                    loading={createMutation.isPending}
-                  />
-                </>
-              )}
-            </ScrollView>
-          );
-        })()
-      )}
+                  </>
+                )}
+              </ScrollView>
+            );
+          })()
+        )}
+      </KeyboardAvoidingView>
 
       <HappyHourStartPicker
         visible={pickerOpen}
@@ -442,6 +447,9 @@ const createStyles = (colors: ThemeColors) =>
     safeArea: {
       flex: 1,
       backgroundColor: colors.background,
+    },
+    flex: {
+      flex: 1,
     },
     topBar: {
       flexDirection: "row",

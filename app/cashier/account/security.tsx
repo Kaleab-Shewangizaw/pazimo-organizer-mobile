@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { updatePassword } from "@/api/auth";
@@ -59,41 +59,46 @@ export default function CashierSecurityScreen() {
         <Text style={styles.topBarTitle}>Change password</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        {topLevelError ? <Banner kind="error" message={topLevelError} /> : null}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {topLevelError ? <Banner kind="error" message={topLevelError} /> : null}
 
-        <TextField
-          label="Current password"
-          value={currentPassword}
-          onChangeText={setCurrentPassword}
-          error={fieldErrors.currentPassword}
-          isPassword
-          autoComplete="current-password"
-        />
-        <TextField
-          label="New password"
-          value={newPassword}
-          onChangeText={setNewPassword}
-          error={fieldErrors.newPassword}
-          isPassword
-          autoComplete="new-password"
-        />
-        <TextField
-          label="Confirm new password"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          error={fieldErrors.confirmPassword}
-          isPassword
-          autoComplete="new-password"
-        />
+          <TextField
+            label="Current password"
+            value={currentPassword}
+            onChangeText={setCurrentPassword}
+            error={fieldErrors.currentPassword}
+            isPassword
+            autoComplete="current-password"
+          />
+          <TextField
+            label="New password"
+            value={newPassword}
+            onChangeText={setNewPassword}
+            error={fieldErrors.newPassword}
+            isPassword
+            autoComplete="new-password"
+          />
+          <TextField
+            label="Confirm new password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            error={fieldErrors.confirmPassword}
+            isPassword
+            autoComplete="new-password"
+          />
 
-        <Button
-          label="Update password"
-          onPress={() => mutation.mutate()}
-          loading={mutation.isPending}
-          style={styles.submit}
-        />
-      </ScrollView>
+          <Button
+            label="Update password"
+            onPress={() => mutation.mutate()}
+            loading={mutation.isPending}
+            style={styles.submit}
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -103,6 +108,9 @@ const createStyles = (colors: ThemeColors) =>
     safeArea: {
       flex: 1,
       backgroundColor: colors.background,
+    },
+    flex: {
+      flex: 1,
     },
     topBar: {
       flexDirection: "row",

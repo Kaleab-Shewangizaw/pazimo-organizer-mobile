@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { updateProfile } from "@/api/auth";
@@ -61,31 +61,36 @@ export default function CashierEditNameScreen() {
         <Text style={styles.topBarTitle}>Edit name</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        {topLevelError ? <Banner kind="error" message={topLevelError} /> : null}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {topLevelError ? <Banner kind="error" message={topLevelError} /> : null}
 
-        <TextField
-          label="First name"
-          value={firstName}
-          onChangeText={setFirstName}
-          error={fieldErrors.firstName}
-          autoCapitalize="words"
-        />
-        <TextField
-          label="Last name"
-          value={lastName}
-          onChangeText={setLastName}
-          error={fieldErrors.lastName}
-          autoCapitalize="words"
-        />
+          <TextField
+            label="First name"
+            value={firstName}
+            onChangeText={setFirstName}
+            error={fieldErrors.firstName}
+            autoCapitalize="words"
+          />
+          <TextField
+            label="Last name"
+            value={lastName}
+            onChangeText={setLastName}
+            error={fieldErrors.lastName}
+            autoCapitalize="words"
+          />
 
-        <Button
-          label="Save changes"
-          onPress={() => saveMutation.mutate()}
-          loading={saveMutation.isPending}
-          style={styles.submit}
-        />
-      </ScrollView>
+          <Button
+            label="Save changes"
+            onPress={() => saveMutation.mutate()}
+            loading={saveMutation.isPending}
+            style={styles.submit}
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -95,6 +100,9 @@ const createStyles = (colors: ThemeColors) =>
     safeArea: {
       flex: 1,
       backgroundColor: colors.background,
+    },
+    flex: {
+      flex: 1,
     },
     topBar: {
       flexDirection: "row",
