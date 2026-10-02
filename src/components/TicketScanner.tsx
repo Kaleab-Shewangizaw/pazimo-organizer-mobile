@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { LinearGradient } from "expo-linear-gradient";
 import { useIsFocused } from "expo-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -116,6 +116,20 @@ export function TicketScanner({
   const [permission, requestPermission] = useCameraPermissions({ request: true });
   const [state, setState] = useState<ScanState>({ stage: "scanning" });
   const [count, setCount] = useState(1);
+  // A ref rather than state, same as the other scanners: the camera reports
+  // the code in view many times a second, and `state.stage` hasn't committed
+  // to "reviewing" until validate-qr answers. Without this every frame fired
+  // its own validate request, and each late reply's setCount(1) reset the
+  // stepper right after the usher tapped "+", so +/- looked dead.
+  const busyRef = useRef(false);
+  const releaseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (releaseTimer.current) clearTimeout(releaseTimer.current);
+    },
+    [],
+  );
 
   const validateMutation = useMutation({
     mutationFn: (qrData: string) => validateTicketQr(qrData, eventId),
@@ -176,13 +190,21 @@ export function TicketScanner({
   });
 
   const handleScan = ({ data }: { data: string }) => {
-    if (state.stage !== "scanning") return;
+    if (busyRef.current || state.stage !== "scanning") return;
+    busyRef.current = true;
     validateMutation.mutate(data);
   };
 
   const scanNext = () => {
     setState({ stage: "scanning" });
     setCount(1);
+    // Hold the lock a beat longer: the ticket just handled is usually still
+    // in front of the lens, and re-reading it instantly would pop straight
+    // back into "Already checked in" before the usher has moved on.
+    if (releaseTimer.current) clearTimeout(releaseTimer.current);
+    releaseTimer.current = setTimeout(() => {
+      busyRef.current = false;
+    }, 1500);
   };
 
   if (!permission) {
@@ -366,6 +388,9 @@ function ReviewCard({
         <Pressable
           onPress={() => onChangeCount(Math.max(1, count - 1))}
           disabled={count <= 1}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="One fewer person"
           style={[styles.stepperButton, count <= 1 && styles.stepperButtonDisabled]}
         >
           <Ionicons name="remove" size={20} color={colors.ink} />
@@ -374,6 +399,9 @@ function ReviewCard({
         <Pressable
           onPress={() => onChangeCount(Math.min(maxCount, count + 1))}
           disabled={count >= maxCount}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="One more person"
           style={[styles.stepperButton, count >= maxCount && styles.stepperButtonDisabled]}
         >
           <Ionicons name="add" size={20} color={colors.ink} />
