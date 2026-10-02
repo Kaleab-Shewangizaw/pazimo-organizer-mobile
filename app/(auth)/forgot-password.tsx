@@ -248,6 +248,7 @@ function NewPasswordStep({ identifier, code }: { identifier: string; code: strin
           onChangeText={setPassword}
           error={errors.password}
           isPassword
+          autoComplete="new-password"
           placeholder="At least 6 characters"
         />
         <TextField
@@ -256,6 +257,7 @@ function NewPasswordStep({ identifier, code }: { identifier: string; code: strin
           onChangeText={setConfirmPassword}
           error={errors.confirmPassword}
           isPassword
+          autoComplete="new-password"
           placeholder="Re-enter your new password"
         />
 

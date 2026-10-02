@@ -17,10 +17,21 @@ interface TextFieldProps extends TextInputProps {
   isPassword?: boolean;
 }
 
-export function TextField({ label, error, style, isPassword, ...inputProps }: TextFieldProps) {
+export function TextField({
+  label,
+  error,
+  style,
+  isPassword,
+  onFocus,
+  onBlur,
+  ...inputProps
+}: TextFieldProps) {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [hidden, setHidden] = useState(true);
+  // Drives the focus ring — without it a masked password field gives no
+  // sign it's the one receiving keystrokes.
+  const [focused, setFocused] = useState(false);
 
   return (
     <View style={styles.container}>
@@ -28,13 +39,27 @@ export function TextField({ label, error, style, isPassword, ...inputProps }: Te
       <View style={styles.inputWrap}>
         <TextInput
           placeholderTextColor={colors.textMuted}
+          cursorColor={colors.ink}
+          selectionColor={colors.accentText}
+          // Passwords are case-sensitive and not words: never let the
+          // keyboard capitalise or "correct" them behind the dots.
+          {...(isPassword && { autoCapitalize: "none", autoCorrect: false, spellCheck: false })}
           style={[
             styles.input,
             isPassword && styles.inputWithIcon,
+            focused && styles.inputFocused,
             !!error && styles.inputError,
             style,
           ]}
           {...inputProps}
+          onFocus={(e) => {
+            setFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            onBlur?.(e);
+          }}
           secureTextEntry={isPassword ? hidden : inputProps.secureTextEntry}
         />
         {isPassword ? (
@@ -86,6 +111,9 @@ const createStyles = (colors: ThemeColors) =>
     },
     inputWithIcon: {
       paddingRight: 46,
+    },
+    inputFocused: {
+      borderColor: colors.accentText,
     },
     inputError: {
       borderColor: colors.error,

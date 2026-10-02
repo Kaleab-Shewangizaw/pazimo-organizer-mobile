@@ -116,7 +116,7 @@ export default function UsherSignUpScreen() {
           onChangeText={(v) => set("password", v)}
           error={fieldErrors.password}
           isPassword
-          autoComplete="password-new"
+          autoComplete="new-password"
           placeholder="At least 8 characters"
         />
         <TextField
@@ -125,7 +125,7 @@ export default function UsherSignUpScreen() {
           onChangeText={(v) => set("confirmPassword", v)}
           error={fieldErrors.confirmPassword}
           isPassword
-          autoComplete="password-new"
+          autoComplete="new-password"
           placeholder="Re-enter your password"
         />
 

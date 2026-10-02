@@ -240,6 +240,7 @@ function AccountStep({
         onChangeText={(password) => onChange({ ...value, password })}
         error={errors.password}
         isPassword
+        autoComplete="new-password"
         placeholder="At least 8 characters"
       />
       <Button label="Continue" onPress={onNext} style={styles.primaryAction} />
