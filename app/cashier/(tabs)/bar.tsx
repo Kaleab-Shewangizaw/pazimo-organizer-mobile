@@ -9,7 +9,7 @@ import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { HeroCard } from "@/components/HeroCard";
 import { ListRow } from "@/components/ListRow";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { CashierBarSkeleton } from "@/components/ScreenSkeletons";
 import { useTabBarHeight } from "@/components/TabBarHeightProvider";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
@@ -34,7 +34,7 @@ export default function CashierBarScreen() {
   });
 
   if (summaryQuery.isPending || concessionsQuery.isPending) {
-    return <LoadingScreen />;
+    return <CashierBarSkeleton />;
   }
 
   if (summaryQuery.isError || concessionsQuery.isError) {

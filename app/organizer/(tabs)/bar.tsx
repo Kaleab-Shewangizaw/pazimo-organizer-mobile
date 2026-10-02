@@ -11,7 +11,7 @@ import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { HeroCard } from "@/components/HeroCard";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { OrganizerBarSkeleton } from "@/components/ScreenSkeletons";
 import { ProgressBar } from "@/components/ProgressBar";
 import { useTabBarHeight } from "@/components/TabBarHeightProvider";
 import { bannerMessageFor } from "@/lib/errors";
@@ -67,7 +67,7 @@ export default function OrganizerBarScreen() {
   });
 
   if (eligibilityQuery.isPending) {
-    return <LoadingScreen />;
+    return <OrganizerBarSkeleton />;
   }
 
   if (eligibilityQuery.isError && !eligibilityRouteMissing) {
@@ -97,7 +97,7 @@ export default function OrganizerBarScreen() {
   }
 
   if (dashboardQuery.isPending) {
-    return <LoadingScreen />;
+    return <OrganizerBarSkeleton />;
   }
 
   if (dashboardQuery.isError) {

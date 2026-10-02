@@ -8,7 +8,7 @@ import { getCinemaFinance, getCinemaProfile } from "@/api/cinema";
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { HeroCard } from "@/components/HeroCard";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { CashierHomeSkeleton } from "@/components/ScreenSkeletons";
 import { StatTile } from "@/components/StatTile";
 import { useTabBarHeight } from "@/components/TabBarHeightProvider";
 import { bannerMessageFor } from "@/lib/errors";
@@ -54,7 +54,7 @@ export default function CashierHomeScreen() {
   }
 
   if (profileQuery.isPending || financeQuery.isPending) {
-    return <LoadingScreen />;
+    return <CashierHomeSkeleton />;
   }
 
   if (profileQuery.isError || financeQuery.isError) {

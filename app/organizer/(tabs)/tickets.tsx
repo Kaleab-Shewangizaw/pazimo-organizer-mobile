@@ -9,7 +9,7 @@ import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { EventCard } from "@/components/EventCard";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { OrganizerTicketsSkeleton } from "@/components/ScreenSkeletons";
 import { useTabBarHeight } from "@/components/TabBarHeightProvider";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
@@ -45,7 +45,7 @@ export default function OrganizerTicketsScreen() {
   });
 
   if (query.isPending) {
-    return <LoadingScreen />;
+    return <OrganizerTicketsSkeleton />;
   }
 
   if (query.isError) {

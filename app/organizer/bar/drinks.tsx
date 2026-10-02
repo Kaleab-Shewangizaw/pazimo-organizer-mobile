@@ -8,7 +8,7 @@ import { getOrganizerBeverageDashboard } from "@/api/beverages";
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { BarDrinksSkeleton } from "@/components/ScreenSkeletons";
 import { ProgressBar } from "@/components/ProgressBar";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
@@ -34,7 +34,7 @@ export default function BarDrinksScreen() {
   });
 
   if (query.isPending) {
-    return <LoadingScreen />;
+    return <BarDrinksSkeleton />;
   }
 
   if (query.isError) {

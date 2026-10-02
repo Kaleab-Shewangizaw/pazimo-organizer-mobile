@@ -7,7 +7,7 @@ import { getMyUsherEvents } from "@/api/ushers";
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { ScannerSkeleton } from "@/components/ScreenSkeletons";
 import { useTabBarHeight } from "@/components/TabBarHeightProvider";
 import { TicketScanner } from "@/components/TicketScanner";
 import { bannerMessageFor } from "@/lib/errors";
@@ -33,7 +33,7 @@ export default function UsherScanTabScreen() {
   });
 
   if (eventsQuery.isPending) {
-    return <LoadingScreen />;
+    return <ScannerSkeleton />;
   }
 
   if (eventsQuery.isError) {

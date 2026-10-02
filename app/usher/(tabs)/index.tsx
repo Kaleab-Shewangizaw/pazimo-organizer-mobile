@@ -11,7 +11,7 @@ import { Button } from "@/components/Button";
 import { Chip } from "@/components/Chip";
 import { EmptyState } from "@/components/EmptyState";
 import { EventCoverCard } from "@/components/EventCoverCard";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { UsherHomeSkeleton } from "@/components/ScreenSkeletons";
 import { useTabBarHeight } from "@/components/TabBarHeightProvider";
 
 import { bannerMessageFor } from "@/lib/errors";
@@ -45,7 +45,7 @@ export default function UsherEventScreen() {
   }, [eventsQuery]);
 
   if (eventsQuery.isPending) {
-    return <LoadingScreen />;
+    return <UsherHomeSkeleton />;
   }
 
   if (eventsQuery.isError) {

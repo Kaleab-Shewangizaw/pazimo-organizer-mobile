@@ -15,7 +15,7 @@ import { getOrganizerDashboard } from "@/api/organizers";
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { HappyHourCampaignsSkeleton } from "@/components/ScreenSkeletons";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatCountdown, formatMoney } from "@/lib/format";
@@ -152,7 +152,7 @@ export default function HappyHourScreen() {
       </View>
 
       {query.isPending ? (
-        <LoadingScreen />
+        <HappyHourCampaignsSkeleton />
       ) : query.isError ? (
         <View style={styles.errorContainer}>
           <Banner

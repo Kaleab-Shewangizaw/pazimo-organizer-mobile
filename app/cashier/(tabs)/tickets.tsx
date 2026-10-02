@@ -8,7 +8,7 @@ import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { ListRow } from "@/components/ListRow";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { CashierTicketsSkeleton } from "@/components/ScreenSkeletons";
 import { StatTile } from "@/components/StatTile";
 import { useTabBarHeight } from "@/components/TabBarHeightProvider";
 import { bannerMessageFor } from "@/lib/errors";
@@ -40,7 +40,7 @@ export default function CashierTicketsScreen() {
   });
 
   if (summaryQuery.isPending || salesQuery.isPending) {
-    return <LoadingScreen />;
+    return <CashierTicketsSkeleton />;
   }
 
   if (summaryQuery.isError || salesQuery.isError) {

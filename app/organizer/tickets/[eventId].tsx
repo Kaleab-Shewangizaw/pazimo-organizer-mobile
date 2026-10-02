@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Image,
   Pressable,
@@ -19,7 +18,8 @@ import { Button } from "@/components/Button";
 import { KeyboardAvoider, keyboardScrollProps } from "@/components/KeyboardAvoider";
 import { EmptyState } from "@/components/EmptyState";
 import { ListRow } from "@/components/ListRow";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { EventTicketsSkeleton } from "@/components/ScreenSkeletons";
+import { SkeletonListRow } from "@/components/Skeleton";
 import { StatTile } from "@/components/StatTile";
 import { TextField } from "@/components/TextField";
 import { CashierCodeSheet } from "@/components/CashierCodeSheet";
@@ -28,7 +28,7 @@ import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
 import { goBack } from "@/lib/navigation";
-import { accentAlt, cardShadow, type ThemeColors } from "@/lib/theme";
+import { cardShadow, type ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 import type { OrganizerTicket, TicketStatus } from "@/types";
 
@@ -82,7 +82,7 @@ export default function EventTicketsScreen() {
   });
 
   if (statsQuery.isPending) {
-    return <LoadingScreen />;
+    return <EventTicketsSkeleton title={title} />;
   }
 
   if (statsQuery.isError) {
@@ -244,9 +244,10 @@ export default function EventTicketsScreen() {
           )}
           ListEmptyComponent={
             !ticketsRevealed ? null : listQuery.isPending ? (
-              <View style={styles.loadingRow}>
-                <ActivityIndicator color={accentAlt(colors)} />
-                <Text style={styles.loadingText}>Loading buyers…</Text>
+              <View>
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <SkeletonListRow key={i} />
+                ))}
               </View>
             ) : listQuery.isError ? null : (
               <EmptyState
@@ -394,17 +395,6 @@ const createStyles = (colors: ThemeColors) =>
     },
     search: {
       marginTop: -2,
-    },
-    loadingRow: {
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: 40,
-      gap: 10,
-    },
-    loadingText: {
-      fontFamily: fonts.body,
-      fontSize: 13,
-      color: colors.textMuted,
     },
     errorContainer: {
       flex: 1,

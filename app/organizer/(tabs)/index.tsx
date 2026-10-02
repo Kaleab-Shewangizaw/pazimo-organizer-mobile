@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   RefreshControl,
   ScrollView,
@@ -19,7 +18,8 @@ import { Button } from "@/components/Button";
 import { Chip } from "@/components/Chip";
 import { EmptyState } from "@/components/EmptyState";
 import { HeroCard } from "@/components/HeroCard";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { OrganizerHomeSkeleton } from "@/components/ScreenSkeletons";
+import { SkeletonProgressCard } from "@/components/Skeleton";
 import { ProgressBar } from "@/components/ProgressBar";
 import { StatTile } from "@/components/StatTile";
 import { useTabBarHeight } from "@/components/TabBarHeightProvider";
@@ -99,7 +99,7 @@ export default function OrganizerHomeScreen() {
   }, [query]);
 
   if (query.isPending) {
-    return <LoadingScreen />;
+    return <OrganizerHomeSkeleton />;
   }
 
   if (query.isError) {
@@ -263,10 +263,7 @@ export default function OrganizerHomeScreen() {
                       </View>
                     </View>
                   ) : tierQuery.isPending ? (
-                    <View style={styles.tierLoadingRow}>
-                      <ActivityIndicator color={accentAlt(colors)} />
-                      <Text style={styles.tierLoadingText}>Loading ticket tiers…</Text>
-                    </View>
+                    <SkeletonProgressCard rows={3} thumb={false} />
                   ) : null}
 
                   <View style={styles.card}>
@@ -484,18 +481,6 @@ const createStyles = (colors: ThemeColors) =>
     },
     tierList: {
       gap: 14,
-    },
-    tierLoadingRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 10,
-      paddingVertical: 20,
-    },
-    tierLoadingText: {
-      fontFamily: fonts.body,
-      fontSize: 13,
-      color: colors.textMuted,
     },
 
     checkinBig: {

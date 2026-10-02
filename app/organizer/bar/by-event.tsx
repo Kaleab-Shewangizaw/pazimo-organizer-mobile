@@ -9,7 +9,7 @@ import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { ListRow } from "@/components/ListRow";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { TitledListSkeleton } from "@/components/ScreenSkeletons";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
@@ -34,7 +34,7 @@ export default function BarByEventScreen() {
   });
 
   if (query.isPending) {
-    return <LoadingScreen />;
+    return <TitledListSkeleton title="By event" backHref="/organizer/bar" />;
   }
 
   if (query.isError) {

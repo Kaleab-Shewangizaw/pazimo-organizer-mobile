@@ -7,7 +7,7 @@ import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { CodeInput } from "@/components/CodeInput";
 import { EventBeverageScanner } from "@/components/EventBeverageScanner";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { ScannerSkeleton } from "@/components/ScreenSkeletons";
 import { Screen } from "@/components/Screen";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
@@ -51,7 +51,7 @@ export function EventCashierGate() {
   });
 
   if (eventsQuery.isPending) {
-    return <LoadingScreen />;
+    return <ScannerSkeleton />;
   }
 
   if (eventsQuery.isError) {

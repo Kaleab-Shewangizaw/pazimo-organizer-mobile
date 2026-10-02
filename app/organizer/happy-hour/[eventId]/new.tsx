@@ -12,7 +12,7 @@ import { Button } from "@/components/Button";
 import { KeyboardAvoider, keyboardScrollProps } from "@/components/KeyboardAvoider";
 import { EmptyState } from "@/components/EmptyState";
 import { HappyHourStartPicker } from "@/components/HappyHourStartPicker";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { HappyHourNewSkeleton } from "@/components/ScreenSkeletons";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { TextField } from "@/components/TextField";
 import { bannerMessageFor } from "@/lib/errors";
@@ -172,7 +172,7 @@ export default function NewHappyHourScreen() {
 
       <KeyboardAvoider style={styles.flex}>
         {lineupQuery.isPending ? (
-          <LoadingScreen />
+          <HappyHourNewSkeleton />
         ) : lineupQuery.isError ? (
           <View style={styles.errorContainer}>
             <Banner

@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getNotificationPreferences, updateNotificationPreferences } from "@/api/auth";
 import { Banner } from "@/components/Banner";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { NotificationsSkeleton } from "@/components/ScreenSkeletons";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { goBack } from "@/lib/navigation";
@@ -51,7 +51,7 @@ export default function OrganizerNotificationsScreen() {
   });
 
   if (query.isPending) {
-    return <LoadingScreen />;
+    return <NotificationsSkeleton />;
   }
 
   return (

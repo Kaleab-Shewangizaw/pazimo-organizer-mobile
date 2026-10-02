@@ -10,7 +10,7 @@ import { getOrganizerDashboard } from "@/api/organizers";
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { HappyHourEventsSkeleton } from "@/components/ScreenSkeletons";
 import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatEventDateRange } from "@/lib/format";
@@ -75,7 +75,7 @@ export default function HappyHourEventPickerScreen() {
       </View>
 
       {isLoading ? (
-        <LoadingScreen />
+        <HappyHourEventsSkeleton />
       ) : eventsQuery.isError ? (
         <View style={styles.errorContainer}>
           <Banner
