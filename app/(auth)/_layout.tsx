@@ -12,6 +12,10 @@ export default function AuthLayout() {
         headerShadowVisible: false,
         headerTintColor: colors.ink,
         headerTitleStyle: { color: colors.ink },
+        // Arrow only. iOS otherwise labels the back button with the previous
+        // screen's title, and the welcome screen (index) has none since it
+        // hides its header — so it read "index" next to the arrow.
+        headerBackButtonDisplayMode: "minimal",
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />

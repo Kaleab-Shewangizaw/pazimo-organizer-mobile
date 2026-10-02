@@ -3,15 +3,18 @@
     "name": "Pazimo Organizer",
     "slug": "pazimo-organizer-mobile",
     "scheme": "pazimoorganizer",
-    "version": "1.0.0",
+    "version": "2.4.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.pazimo.organizer",
+      "bundleIdentifier": "com.example.pazimoOrganizer",
+      "buildNumber": "2",
       "infoPlist": {
+        "CFBundleName": "Pazimo Organizer",
+        "CFBundleDisplayName": "Pazimo Organizer",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
