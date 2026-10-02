@@ -9,13 +9,15 @@ import type { ThemeColors } from "@/lib/theme";
 import { useColors, useResolvedScheme } from "@/lib/useColors";
 import type { UserRole } from "@/types";
 
-const LOGO_LIGHT = require("../../assets/logo-light.png");
-const LOGO_DARK = require("../../assets/logo-dark.png");
-// Natural pixel size of each source asset — needed to derive the right
-// aspectRatio per variant, since the light/dark exports aren't cropped to
-// quite the same proportions.
-const LOGO_RATIO = { light: 3110 / 1034, dark: 3109 / 1183 };
-const WORDMARK_HEIGHT = 120;
+// Navy (light mode) and gold (dark mode) "Pazimo Partners" lockups, keyed to
+// transparent from assets/pazimo_partners_{blue,gold}.png so they sit on the
+// theme background instead of carrying their own white/navy square.
+const LOGO_LIGHT = require("../../assets/partners-logo-light.png");
+const LOGO_DARK = require("../../assets/partners-logo-dark.png");
+// Natural pixel size of each asset — the two keyed exports crop to very
+// slightly different widths.
+const LOGO_RATIO = { light: 1976 / 888, dark: 1972 / 888 };
+const WORDMARK_HEIGHT = 110;
 
 type Tab = "organizer" | "staff";
 type StaffRole = "usher" | "cashier";

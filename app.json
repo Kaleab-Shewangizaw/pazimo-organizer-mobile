@@ -18,7 +18,7 @@
     "android": {
       "package": "com.pazimo.organizer",
       "adaptiveIcon": {
-        "backgroundColor": "#101B32",
+        "backgroundColor": "#121C32",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -49,12 +49,12 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#FFFFFF",
-          "image": "./assets/logo-light.png",
+          "image": "./assets/partners-logo-light.png",
           "imageWidth": 220,
           "resizeMode": "contain",
           "dark": {
-            "backgroundColor": "#0A0A0B",
-            "image": "./assets/logo-dark.png"
+            "backgroundColor": "#000000",
+            "image": "./assets/partners-logo-dark.png"
           }
         }
       ]
