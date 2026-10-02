@@ -7,9 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -21,6 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { getOrganizerProfile, updateOrganizerProfile, updateOrganizerProfilePicture } from "@/api/organizers";
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
+import { KeyboardAvoider, keyboardScrollProps } from "@/components/KeyboardAvoider";
 import { TextField } from "@/components/TextField";
 import { editOrganizerProfileSchema } from "@/features/auth/schemas";
 import { bannerMessageFor, VALIDATION_ERROR_MESSAGE } from "@/lib/errors";
@@ -147,11 +146,8 @@ export default function OrganizerEditProfileScreen() {
         <Text style={styles.topBarTitle}>Edit profile</Text>
       </View>
 
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoider style={styles.flex}>
+        <ScrollView {...keyboardScrollProps} contentContainerStyle={styles.content}>
           <Pressable onPress={pickPhoto} style={styles.avatarWrap} disabled={pictureMutation.isPending}>
             {avatarUrl ? (
               <Image source={{ uri: avatarUrl }} style={styles.avatar} />
@@ -221,7 +217,7 @@ export default function OrganizerEditProfileScreen() {
             />
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAvoider>
 
       <Modal visible={!!previewUri} transparent animationType="fade" onRequestClose={() => setPreviewUri(null)}>
         <View style={styles.previewBackdrop}>

@@ -2,13 +2,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
-import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { createEventHappyHour, getEventBeverageLineup, type CreateHappyHourInput } from "@/api/beverages";
 import { getOrganizerDashboard } from "@/api/organizers";
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
+import { KeyboardAvoider, keyboardScrollProps } from "@/components/KeyboardAvoider";
 import { EmptyState } from "@/components/EmptyState";
 import { HappyHourStartPicker } from "@/components/HappyHourStartPicker";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -169,10 +170,7 @@ export default function NewHappyHourScreen() {
         </Text>
       </View>
 
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoider style={styles.flex}>
         {lineupQuery.isPending ? (
           <LoadingScreen />
         ) : lineupQuery.isError ? (
@@ -195,7 +193,7 @@ export default function NewHappyHourScreen() {
             );
 
             return (
-              <ScrollView contentContainerStyle={styles.content}>
+              <ScrollView {...keyboardScrollProps} contentContainerStyle={styles.content}>
                 {eligible.length === 0 ? (
                   <EmptyState
                     title="No drinks available"
@@ -303,7 +301,7 @@ export default function NewHappyHourScreen() {
             );
           })()
         )}
-      </KeyboardAvoidingView>
+      </KeyboardAvoider>
 
       <HappyHourStartPicker
         visible={pickerOpen}

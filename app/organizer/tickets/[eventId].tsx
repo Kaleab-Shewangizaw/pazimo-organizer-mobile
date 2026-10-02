@@ -6,8 +6,6 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -18,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { getEventTickets } from "@/api/tickets";
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
+import { KeyboardAvoider, keyboardScrollProps } from "@/components/KeyboardAvoider";
 import { EmptyState } from "@/components/EmptyState";
 import { ListRow } from "@/components/ListRow";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -153,11 +152,9 @@ export default function EventTicketsScreen() {
         onClose={() => setUsherCodeOpen(false)}
       />
 
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoider style={styles.flex}>
         <FlatList<OrganizerTicket>
+          {...keyboardScrollProps}
           data={ticketsRevealed ? filtered : []}
           keyExtractor={(item) => item.ticketId}
           contentContainerStyle={styles.listContent}
@@ -263,7 +260,7 @@ export default function EventTicketsScreen() {
             )
           }
         />
-      </KeyboardAvoidingView>
+      </KeyboardAvoider>
     </SafeAreaView>
   );
 }

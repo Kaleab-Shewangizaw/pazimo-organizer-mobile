@@ -1,13 +1,9 @@
 import type { ReactNode } from "react";
 import { useMemo } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import { KeyboardAvoider, keyboardScrollProps } from "@/components/KeyboardAvoider";
 
 import type { ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
@@ -23,10 +19,7 @@ export function Screen({ children, scroll = true }: ScreenProps) {
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const content = scroll ? (
-    <ScrollView
-      contentContainerStyle={styles.scrollContent}
-      keyboardShouldPersistTaps="handled"
-    >
+    <ScrollView {...keyboardScrollProps} contentContainerStyle={styles.scrollContent}>
       {children}
     </ScrollView>
   ) : (
@@ -35,12 +28,9 @@ export function Screen({ children, scroll = true }: ScreenProps) {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoider style={styles.flex} ios={!scroll}>
         {content}
-      </KeyboardAvoidingView>
+      </KeyboardAvoider>
     </SafeAreaView>
   );
 }

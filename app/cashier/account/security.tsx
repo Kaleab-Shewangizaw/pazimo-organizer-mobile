@@ -1,12 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { updatePassword } from "@/api/auth";
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
+import { KeyboardAvoider, keyboardScrollProps } from "@/components/KeyboardAvoider";
 import { TextField } from "@/components/TextField";
 import { newPasswordSchema } from "@/features/auth/schemas";
 import { bannerMessageFor, VALIDATION_ERROR_MESSAGE } from "@/lib/errors";
@@ -59,11 +60,8 @@ export default function CashierSecurityScreen() {
         <Text style={styles.topBarTitle}>Change password</Text>
       </View>
 
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoider style={styles.flex}>
+        <ScrollView {...keyboardScrollProps} contentContainerStyle={styles.content}>
           {topLevelError ? <Banner kind="error" message={topLevelError} /> : null}
 
           <TextField
@@ -98,7 +96,7 @@ export default function CashierSecurityScreen() {
             style={styles.submit}
           />
         </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAvoider>
     </SafeAreaView>
   );
 }
