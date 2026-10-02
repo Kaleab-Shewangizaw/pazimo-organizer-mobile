@@ -1,10 +1,30 @@
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+import Constants from "expo-constants";
 
-if (!API_URL) {
+const RAW_API_URL = process.env.EXPO_PUBLIC_API_URL;
+
+if (!RAW_API_URL) {
   throw new Error(
     "EXPO_PUBLIC_API_URL is not set. Copy .env.example to .env and fill it in.",
   );
 }
+
+/**
+ * "localhost" only means the dev machine on the iOS simulator. On an
+ * Android emulator or any physical phone it's the device itself, so every
+ * request failed with "Unable to reach Pazimo". In development, swap it for
+ * the host Metro is being reached on (Expo's hostUri, e.g.
+ * "192.168.1.20:8081") — by definition an address this device can already
+ * reach the dev machine at, and it follows you across Wi-Fi networks
+ * without editing .env. Release builds never touch the URL.
+ */
+function resolveDevHost(url: string): string {
+  if (!__DEV__) return url;
+  const devHost = Constants.expoConfig?.hostUri?.split(":")[0];
+  if (!devHost) return url;
+  return url.replace(/^(https?:\/\/)(localhost|127\.0\.0\.1)(?=[:/]|$)/, `$1${devHost}`);
+}
+
+const API_URL = resolveDevHost(RAW_API_URL);
 
 // Refuse to ship a build that silently talks to the backend over plain HTTP.
 // Localhost is exempt so development against a local backend keeps working.
