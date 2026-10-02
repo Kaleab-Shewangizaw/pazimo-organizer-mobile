@@ -59,8 +59,12 @@ export function listEventHappyHours(eventId: string) {
 }
 
 export interface CreateHappyHourInput {
-  /** At least one — {eventBeverageId, price}, price strictly below that drink's regular price. */
-  items: { eventBeverageId: string; price: number }[];
+  /**
+   * At least one — price strictly below that drink's regular price.
+   * quantityLimit caps how many units sell at that price (≤ what's left in
+   * stock); null/omitted means no cap — the timer and stock bound it.
+   */
+  items: { eventBeverageId: string; price: number; quantityLimit?: number | null }[];
   durationMinutes: number;
   startMode: "manual" | "scheduled";
   /** Required (and must be in the future) when startMode is "scheduled". */

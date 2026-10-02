@@ -29,11 +29,21 @@ const CURRENCY = "ETB" as const;
 const DURATION_PRESETS = [15, 30, 60, 90, 120];
 type DurationChoice = number | "custom";
 type StartChoice = "manual" | "scheduled";
+/** The text typed into one selected drink's fields. Blank quantity = no cap. */
+type DrinkInput = { price: string; quantity: string };
+
+/** The earliest pickable start: a few minutes out, on a 5-minute mark (the picker's minute step). */
+function earliestScheduledStart() {
+  const step = 5 * 60000;
+  return new Date(Math.ceil((Date.now() + step) / step) * step);
+}
 
 /**
  * Publishes a new happy-hour campaign for this event — pick one or more
  * drinks already on the event's line-up (GET .../beverages), set a
- * discounted price for each, pick a duration (a preset or a custom number
+ * discounted price for each (optionally capped to a quantity — the
+ * discount ends at whichever runs out first, the timer or that quantity),
+ * pick a duration (a preset or a custom number
  * of minutes), and how it starts: manually (an explicit "Start now" back on
  * the control screen) or automatically at a picked date/time.
  */
@@ -69,12 +79,15 @@ export default function NewHappyHourScreen() {
     return raw ? new Date(raw) : null;
   }, [fetchedEndDate, eventEndDate]);
 
-  const [selected, setSelected] = useState<Record<string, string>>({}); // eventBeverageId -> price input text
+  const [selected, setSelected] = useState<Record<string, DrinkInput>>({}); // eventBeverageId -> typed inputs
   const [durationChoice, setDurationChoice] = useState<DurationChoice>(30);
   const [customDuration, setCustomDuration] = useState("");
   const [startChoice, setStartChoice] = useState<StartChoice>("manual");
   const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  // Fixed for as long as the sheet is open — a fresh `new Date()` every
+  // render would keep moving the picker's bounds under the user's scroll.
+  const pickerMinDate = useMemo(() => earliestScheduledStart(), [pickerOpen]);
   const [formError, setFormError] = useState<string | null>(null);
 
   const lineupQuery = useQuery({
@@ -96,7 +109,7 @@ export default function NewHappyHourScreen() {
       if (row._id in next) {
         delete next[row._id];
       } else {
-        next[row._id] = "";
+        next[row._id] = { price: "", quantity: "" };
       }
       return next;
     });
@@ -108,10 +121,10 @@ export default function NewHappyHourScreen() {
       setFormError("Pick at least one drink");
       return;
     }
-    const items: { eventBeverageId: string; price: number }[] = [];
+    const items: CreateHappyHourInput["items"] = [];
     for (const id of ids) {
       const row = rows.find((r) => r._id === id);
-      const price = Number(selected[id]);
+      const price = Number(selected[id].price);
       if (!row || !Number.isFinite(price) || price <= 0) {
         setFormError(`Enter a valid discounted price for ${row?.beverage?.name ?? "each drink"}`);
         return;
@@ -120,7 +133,20 @@ export default function NewHappyHourScreen() {
         setFormError(`${row.beverage?.name ?? "That drink"}'s price must be below its regular ${formatMoney(row.price, CURRENCY)}`);
         return;
       }
-      items.push({ eventBeverageId: id, price });
+      const quantityText = selected[id].quantity.trim();
+      let quantityLimit: number | null = null;
+      if (quantityText) {
+        quantityLimit = Number(quantityText);
+        if (!Number.isInteger(quantityLimit) || quantityLimit < 1) {
+          setFormError(`Enter a whole-number quantity for ${row.beverage?.name ?? "each drink"}, or leave it blank`);
+          return;
+        }
+        if (quantityLimit > row.remaining) {
+          setFormError(`Only ${row.remaining} ${row.beverage?.name ?? "of that drink"} left in stock — lower the quantity or leave it blank`);
+          return;
+        }
+      }
+      items.push({ eventBeverageId: id, price, quantityLimit });
     }
 
     const durationMinutes =
@@ -209,10 +235,13 @@ export default function NewHappyHourScreen() {
                           colors={colors}
                           row={row}
                           selected={row._id in selected}
-                          priceInput={selected[row._id] ?? ""}
+                          input={selected[row._id]}
                           onToggle={() => toggleRow(row)}
-                          onChangePrice={(text) =>
-                            setSelected((prev) => ({ ...prev, [row._id]: text }))
+                          onChangeInput={(field, text) =>
+                            setSelected((prev) => ({
+                              ...prev,
+                              [row._id]: { ...prev[row._id], [field]: text },
+                            }))
                           }
                         />
                       ))}
@@ -310,7 +339,7 @@ export default function NewHappyHourScreen() {
           setScheduledAt(date);
           setPickerOpen(false);
         }}
-        minDate={new Date()}
+        minDate={pickerMinDate}
         maxDate={eventEnd ?? new Date(Date.now() + 7 * 24 * 60 * 60000)}
         initialDate={scheduledAt}
       />
@@ -322,16 +351,16 @@ function DrinkRow({
   colors,
   row,
   selected,
-  priceInput,
+  input,
   onToggle,
-  onChangePrice,
+  onChangeInput,
 }: {
   colors: ThemeColors;
   row: EventBeverageRow;
   selected: boolean;
-  priceInput: string;
+  input: DrinkInput | undefined;
   onToggle: () => void;
-  onChangePrice: (text: string) => void;
+  onChangeInput: (field: keyof DrinkInput, text: string) => void;
 }) {
   const styles = rowStyles(colors);
   const image = resolveMediaUrl(row.beverage?.image);
@@ -366,14 +395,29 @@ function DrinkRow({
       </Pressable>
 
       {selected ? (
-        <TextField
-          label="Discounted price"
-          value={priceInput}
-          onChangeText={onChangePrice}
-          keyboardType="decimal-pad"
-          placeholder={`Below ${formatMoney(row.price, CURRENCY)}`}
-          style={styles.priceInput}
-        />
+        <View style={styles.inputs}>
+          <TextField
+            label="Discounted price"
+            value={input?.price ?? ""}
+            onChangeText={(text) => onChangeInput("price", text)}
+            keyboardType="decimal-pad"
+            placeholder={`Below ${formatMoney(row.price, CURRENCY)}`}
+            style={styles.priceInput}
+          />
+          <TextField
+            label="Quantity at this price (optional)"
+            value={input?.quantity ?? ""}
+            onChangeText={(text) => onChangeInput("quantity", text)}
+            keyboardType="number-pad"
+            placeholder={`No limit · up to ${row.remaining}`}
+            style={styles.priceInput}
+          />
+          <Text style={styles.hint}>
+            {input?.quantity.trim()
+              ? `Ends for this drink after ${input.quantity.trim()} sold or when the timer runs out — whichever comes first.`
+              : "Leave blank to keep the discount until the timer runs out (or the drink sells out)."}
+          </Text>
+        </View>
       ) : null}
     </View>
   );
@@ -435,8 +479,16 @@ const rowStyles = (colors: ThemeColors) =>
       fontSize: 12,
       color: colors.textMuted,
     },
+    inputs: {
+      gap: 10,
+    },
     priceInput: {
       height: 46,
+    },
+    hint: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: colors.textMuted,
     },
   });
 

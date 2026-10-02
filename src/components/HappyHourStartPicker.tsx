@@ -48,48 +48,65 @@ function WheelColumn<T>({
 }) {
   const ref = useRef<ScrollView>(null);
   const styles = wheelStyles(colors);
-  // A gentle drag-and-release (no fling) doesn't always reach the momentum
-  // phase, so onMomentumScrollEnd alone can silently never fire — commit
-  // from onScrollEndDrag too. Both can fire for the same gesture; this
-  // dedupe guard keeps that from calling onChange twice or fighting the
-  // corrective scrollTo mid-animation.
-  const lastCommitted = useRef(selectedIndex);
+  // Whatever row is sitting in the selection band right now. Tracked live
+  // from onScroll rather than only when scrolling ends: the end events don't
+  // reliably fire for every gesture (a gentle release may never reach the
+  // momentum phase), and "Confirm" tapped while the wheel is still settling
+  // must still get the row the user can see in the band.
+  const liveIndex = useRef(selectedIndex);
 
-  // Snap to the current selection when the list itself changes (a fresh
-  // open, or the day range re-bounding around a different event) — not on
-  // every selectedIndex change, which would fight the user's own scrolling.
-  useEffect(() => {
-    ref.current?.scrollTo({ y: selectedIndex * ITEM_HEIGHT, animated: false });
-    lastCommitted.current = selectedIndex;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items]);
+  function clampIndex(index: number) {
+    return Math.max(0, Math.min(items.length - 1, index));
+  }
 
-  function commit(offsetY: number) {
-    const index = Math.max(0, Math.min(items.length - 1, Math.round(offsetY / ITEM_HEIGHT)));
-    if (index !== lastCommitted.current) {
-      lastCommitted.current = index;
+  function track(offsetY: number) {
+    const index = clampIndex(Math.round(offsetY / ITEM_HEIGHT));
+    if (index !== liveIndex.current) {
+      liveIndex.current = index;
       onChange(index);
     }
-    ref.current?.scrollTo({ y: index * ITEM_HEIGHT, animated: true });
   }
+
+  // Follow a selection set from outside (the sheet re-seeding on open, or
+  // the list re-bounding) — but never one this wheel just reported itself,
+  // or it would fight the user's own scroll.
+  useEffect(() => {
+    const index = clampIndex(selectedIndex);
+    if (index !== liveIndex.current) {
+      liveIndex.current = index;
+      ref.current?.scrollTo({ y: index * ITEM_HEIGHT, animated: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedIndex, items.length]);
 
   return (
     <ScrollView
       ref={ref}
       style={{ width, height: ITEM_HEIGHT * VISIBLE_ROWS }}
       showsVerticalScrollIndicator={false}
+      nestedScrollEnabled
       snapToInterval={ITEM_HEIGHT}
       decelerationRate="fast"
       contentContainerStyle={{ paddingVertical: PAD }}
-      onMomentumScrollEnd={(e) => commit(e.nativeEvent.contentOffset.y)}
-      onScrollEndDrag={(e) => commit(e.nativeEvent.contentOffset.y)}
+      contentOffset={{ x: 0, y: selectedIndex * ITEM_HEIGHT }}
+      // contentOffset alone isn't always honoured on first layout inside a
+      // Modal (notably on Android) — position the wheel once it has a size.
+      onLayout={() => ref.current?.scrollTo({ y: liveIndex.current * ITEM_HEIGHT, animated: false })}
+      scrollEventThrottle={16}
+      onScroll={(e) => track(e.nativeEvent.contentOffset.y)}
+      onScrollEndDrag={(e) => track(e.nativeEvent.contentOffset.y)}
+      onMomentumScrollEnd={(e) => track(e.nativeEvent.contentOffset.y)}
     >
       {items.map((item, index) => (
-        <View key={index} style={styles.item}>
+        <Pressable
+          key={index}
+          style={styles.item}
+          onPress={() => ref.current?.scrollTo({ y: index * ITEM_HEIGHT, animated: true })}
+        >
           <Text style={[styles.itemText, index === selectedIndex && styles.itemTextActive]}>
             {renderLabel(item)}
           </Text>
-        </View>
+        </Pressable>
       ))}
     </ScrollView>
   );
@@ -122,7 +139,12 @@ export function HappyHourStartPicker({
   const colors = useColors();
   const styles = createStyles(colors);
 
-  const days = useMemo(() => buildDays(minDate, maxDate), [minDate.getTime(), maxDate.getTime()]);
+  // Keyed by calendar day, not by the exact millisecond — a minDate of "now"
+  // that ticks forward between renders must not rebuild the day wheel.
+  const minDayKey = minDate.toDateString();
+  const maxDayKey = maxDate.toDateString();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const days = useMemo(() => buildDays(minDate, maxDate), [minDayKey, maxDayKey]);
   const hours = useMemo(() => Array.from({ length: 24 }, (_, i) => i), []);
   const minutes = useMemo(() => Array.from({ length: 12 }, (_, i) => i * 5), []);
 
@@ -151,18 +173,21 @@ export function HappyHourStartPicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
-  function confirm() {
-    const day = days[dayIndex] ?? days[0];
-    const combined = new Date(day);
-    combined.setHours(hours[hourIndex] ?? 0, minutes[minuteIndex] ?? 0, 0, 0);
-    // The wheels are already bounded to the right days, but an edge minute
-    // on the first/last day can still land a moment outside the window —
-    // clamp rather than reject.
-    const clamped = new Date(
-      Math.min(Math.max(combined.getTime(), minDate.getTime()), maxDate.getTime()),
-    );
-    onConfirm(clamped);
-  }
+  // What the wheels currently add up to. The wheels are already bounded to
+  // the right days, but an edge hour/minute on the first/last day can still
+  // land outside the window — clamp rather than reject, and show the clamped
+  // value below the wheels so what gets confirmed is never a surprise.
+  const day = days[dayIndex] ?? days[0];
+  const combined = new Date(day);
+  combined.setHours(hours[hourIndex] ?? 0, minutes[minuteIndex] ?? 0, 0, 0);
+  const picked = new Date(
+    Math.min(Math.max(combined.getTime(), minDate.getTime()), maxDate.getTime()),
+  );
+  const pickedLabel = `${formatDayLabel(picked, minDate)} at ${picked.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })}`;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -213,7 +238,12 @@ export function HappyHourStartPicker({
             />
           </View>
 
-          <Button label="Confirm" onPress={confirm} />
+          <Text style={styles.summary}>
+            Starts <Text style={styles.summaryEmphasis}>{pickedLabel}</Text>
+            {picked.getTime() !== combined.getTime() ? " (earliest/latest allowed)" : ""}
+          </Text>
+
+          <Button label="Confirm" onPress={() => onConfirm(picked)} />
         </View>
       </SafeAreaView>
     </Modal>
@@ -294,6 +324,16 @@ const createStyles = (colors: ThemeColors) =>
       height: ITEM_HEIGHT,
       backgroundColor: colors.surfaceAlt,
       borderRadius: 12,
+    },
+    summary: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      color: colors.textMuted,
+      textAlign: "center",
+    },
+    summaryEmphasis: {
+      fontFamily: fonts.semibold,
+      color: colors.ink,
     },
     colon: {
       fontFamily: fonts.bold,

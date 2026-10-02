@@ -269,7 +269,7 @@ function HappyHourCard({
   } else if (state.status === "scheduled") {
     timingLine = "Ready to start";
   } else if (state.status === "ended") {
-    timingLine = "Happy hour ended";
+    timingLine = state.reason === "sold_out" ? "Sold out — happy hour ended" : "Happy hour ended";
   } else if (state.status === "cancelled") {
     timingLine = "Cancelled";
   } else {
@@ -291,9 +291,18 @@ function HappyHourCard({
       <View style={styles.itemsList}>
         {campaign.items.map((item, index) => (
           <View key={`${item.lineup}-${index}`} style={styles.itemRow}>
-            <Text style={styles.itemName} numberOfLines={1}>
-              {item.beverage?.name ?? "Drink"}
-            </Text>
+            <View style={styles.itemInfo}>
+              <Text style={styles.itemName} numberOfLines={1}>
+                {item.beverage?.name ?? "Drink"}
+              </Text>
+              <Text style={[styles.itemQuantity, item.remaining === 0 && styles.itemSoldOut]}>
+                {item.quantityLimit == null
+                  ? "No quantity limit"
+                  : item.remaining === 0
+                  ? `Sold out · all ${item.quantityLimit} gone`
+                  : `${item.remaining ?? item.quantityLimit} of ${item.quantityLimit} left at this price`}
+              </Text>
+            </View>
             <View style={styles.itemPrices}>
               {item.regularPrice != null ? (
                 <Text style={styles.itemRegularPrice}>{formatMoney(item.regularPrice, CURRENCY)}</Text>
@@ -399,11 +408,22 @@ const cardStyles = (colors: ThemeColors) =>
       alignItems: "center",
       gap: 8,
     },
+    itemInfo: {
+      flexShrink: 1,
+      gap: 2,
+    },
     itemName: {
       fontFamily: fonts.body,
       fontSize: 14,
       color: colors.ink,
-      flexShrink: 1,
+    },
+    itemQuantity: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    itemSoldOut: {
+      color: colors.error,
     },
     itemPrices: {
       flexDirection: "row",

@@ -439,9 +439,19 @@ export interface BeverageCatalogResponse {
 export type HappyHourState =
   | { status: "none" }
   | { status: "cancelled" }
-  | { status: "scheduled"; startsAt: string | null; price?: number; happyHourId?: string }
-  | { status: "active"; startsAt: string; endsAt: string; price?: number; happyHourId?: string }
-  | { status: "ended"; endedAt: string };
+  | ({ status: "scheduled"; startsAt: string | null } & HappyHourLineupInfo)
+  | ({ status: "active"; startsAt: string; endsAt: string } & HappyHourLineupInfo)
+  /** reason: the timer ran out, or every drink in it hit its quantity cap. */
+  | { status: "ended"; endedAt: string; reason?: "time" | "sold_out" };
+
+/** Only present when the state was resolved for one line-up row (resolveLineupHappyHour). */
+interface HappyHourLineupInfo {
+  price?: number;
+  happyHourId?: string;
+  quantityLimit?: number | null;
+  /** Discounted units left — null when that drink has no quantity cap. */
+  remaining?: number | null;
+}
 
 /** One row of GET /api/beverages/organizer/events/:eventId/beverages — this event's drink line-up. */
 export interface EventBeverageRow {
@@ -471,6 +481,13 @@ export interface EventBeverageLineupResponse {
 export interface HappyHourItem {
   lineup: string;
   price: number;
+  /** Max units sold at `price` — null means no cap (timer and stock only). */
+  quantityLimit?: number | null;
+  /** Units sold at `price` so far. */
+  sold?: number;
+  soldOutAt?: string | null;
+  /** quantityLimit - sold, from listEventHappyHours; null when uncapped. */
+  remaining?: number | null;
   beverage?: { _id: string; name: string; color?: string | null } | null;
   regularPrice?: number | null;
 }
