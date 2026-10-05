@@ -28,6 +28,7 @@ import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
 import { resolveMediaUrl } from "@/lib/media";
+import { admissionsIssued, invitationsIssued, ticketsSold } from "@/lib/tickets";
 import { accentAlt, cardShadow, type ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 import { useAuthStore } from "@/store/authStore";
@@ -119,15 +120,22 @@ export default function OrganizerHomeScreen() {
   const topByRevenue = [...sortedEvents].sort((a, b) => b.revenue - a.revenue).slice(0, 5);
   const maxRevenue = Math.max(1, ...topByRevenue.map((e) => e.revenue));
 
-  const allTimeSold = sortedEvents.reduce((a, e) => a + e.ticketStats.total, 0);
+  const allTimeSold = sortedEvents.reduce((a, e) => a + ticketsSold(e), 0);
+  const allTimeInvited = sortedEvents.reduce((a, e) => a + invitationsIssued(e), 0);
 
   const ticketsSoldValue = allTime
     ? String(allTimeSold)
     : selectedEvent
       ? selectedEvent.capacity
-        ? `${selectedEvent.ticketStats.total}/${selectedEvent.capacity}`
-        : String(selectedEvent.ticketStats.total)
+        ? `${ticketsSold(selectedEvent)}/${selectedEvent.capacity}`
+        : String(ticketsSold(selectedEvent))
       : "0";
+  const invitationsValue = allTime
+    ? allTimeInvited
+    : selectedEvent
+      ? invitationsIssued(selectedEvent)
+      : 0;
+  const selectedAdmissions = selectedEvent ? admissionsIssued(selectedEvent) : 0;
 
   const beverageTotals = beverageDashboardQuery.data?.data;
   const showDrinks = isBeverageEligible && !!beverageTotals;
@@ -196,6 +204,7 @@ export default function OrganizerHomeScreen() {
 
               <View style={styles.statGrid}>
                 <StatTile label="Tickets sold" value={ticketsSoldValue} accent />
+                <StatTile label="Invitations" value={String(invitationsValue)} />
                 {showDrinks ? (
                   <StatTile label="Drinks sold" value={String(drinksSoldValue)} />
                 ) : null}
@@ -270,20 +279,18 @@ export default function OrganizerHomeScreen() {
                     <Text style={styles.cardTitle}>Door check-in</Text>
                     <Text style={styles.checkinBig}>
                       {selectedEvent.ticketStats.used}
-                      <Text style={styles.checkinBigMuted}> / {selectedEvent.ticketStats.total}</Text>
+                      <Text style={styles.checkinBigMuted}> / {selectedAdmissions}</Text>
                     </Text>
                     <Text style={styles.checkinCaption}>
-                      {selectedEvent.ticketStats.total > 0
-                        ? Math.round(
-                            (selectedEvent.ticketStats.used / selectedEvent.ticketStats.total) * 100,
-                          )
+                      {selectedAdmissions > 0
+                        ? Math.round((selectedEvent.ticketStats.used / selectedAdmissions) * 100)
                         : 0}
                       % checked in
                     </Text>
                     <ProgressBar
                       progress={
-                        selectedEvent.ticketStats.total > 0
-                          ? selectedEvent.ticketStats.used / selectedEvent.ticketStats.total
+                        selectedAdmissions > 0
+                          ? selectedEvent.ticketStats.used / selectedAdmissions
                           : 0
                       }
                       color={colors.success}
@@ -407,6 +414,7 @@ const createStyles = (colors: ThemeColors) =>
 
     statGrid: {
       flexDirection: "row",
+      flexWrap: "wrap",
       gap: 12,
     },
 

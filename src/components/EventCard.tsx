@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { EventCoverCard } from "@/components/EventCoverCard";
 import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
+import { invitationsIssued, ticketsSold } from "@/lib/tickets";
 import type { ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 import type { Currency, DashboardEvent } from "@/types";
@@ -18,7 +19,7 @@ interface EventCardProps {
 /**
  * Organizer's event card: the shared EventCoverCard (cover photo, gradient
  * scrim, title/date/location, status badge, ticket-stub tear line) with
- * sold/checked-in/revenue metrics below it — the financial detail that's
+ * sold/invited/checked-in/revenue metrics below it — the financial detail that's
  * specific to the organizer's view.
  */
 export function EventCard({ event, currency, onPress, showStatus = true }: EventCardProps) {
@@ -27,7 +28,8 @@ export function EventCard({ event, currency, onPress, showStatus = true }: Event
   return (
     <EventCoverCard event={event} onPress={onPress} showStatus={showStatus}>
       <View style={styles.metricsRow}>
-        <Metric label="Sold" value={String(event.ticketStats.total)} colors={colors} />
+        <Metric label="Sold" value={String(ticketsSold(event))} colors={colors} />
+        <Metric label="Invited" value={String(invitationsIssued(event))} colors={colors} />
         <Metric label="Checked in" value={String(event.ticketStats.used)} colors={colors} />
         <Metric label="Revenue" value={formatMoney(event.revenue, currency)} colors={colors} />
       </View>

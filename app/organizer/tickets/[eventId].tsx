@@ -18,6 +18,7 @@ import { Button } from "@/components/Button";
 import { KeyboardAvoider, keyboardScrollProps } from "@/components/KeyboardAvoider";
 import { EmptyState } from "@/components/EmptyState";
 import { ListRow } from "@/components/ListRow";
+import { SegmentedControl } from "@/components/SegmentedControl";
 import { EventTicketsSkeleton } from "@/components/ScreenSkeletons";
 import { SkeletonListRow } from "@/components/Skeleton";
 import { StatTile } from "@/components/StatTile";
@@ -28,11 +29,18 @@ import { bannerMessageFor } from "@/lib/errors";
 import { fonts } from "@/lib/fonts";
 import { formatMoney } from "@/lib/format";
 import { goBack } from "@/lib/navigation";
+import {
+  groupInvitationStatuses,
+  invitationStatusLabel,
+  isInvitationTicket,
+} from "@/lib/tickets";
 import { cardShadow, type ThemeColors } from "@/lib/theme";
 import { useColors } from "@/lib/useColors";
 import type { OrganizerTicket, TicketStatus } from "@/types";
 
 const CURRENCY = "ETB" as const;
+
+type TicketKind = "bought" | "invited";
 
 const STATUS_COLOR = (colors: ThemeColors): Partial<Record<TicketStatus, string>> => ({
   active: colors.success,
@@ -66,6 +74,7 @@ export default function EventTicketsScreen() {
   }>();
   const [search, setSearch] = useState("");
   const [ticketsRevealed, setTicketsRevealed] = useState(false);
+  const [kind, setKind] = useState<TicketKind>("bought");
   const [usherCodeOpen, setUsherCodeOpen] = useState(false);
   const [cashierCodeOpen, setCashierCodeOpen] = useState(false);
 
@@ -98,7 +107,14 @@ export default function EventTicketsScreen() {
   }
 
   const { statistics } = statsQuery.data;
-  const tickets = listQuery.data?.tickets ?? [];
+  const invitationCount = statistics.invitationTickets ?? 0;
+  const invitationGroups = statistics.invitationStatusBreakdown
+    ? groupInvitationStatuses(statistics.invitationStatusBreakdown)
+    : null;
+  const allTickets = listQuery.data?.tickets ?? [];
+  const boughtTickets = allTickets.filter((t) => !isInvitationTicket(t));
+  const invitedTickets = allTickets.filter(isInvitationTicket);
+  const tickets = kind === "invited" ? invitedTickets : boughtTickets;
   const searchLower = search.trim().toLowerCase();
   const filtered = searchLower
     ? tickets.filter((t) => {
@@ -177,6 +193,7 @@ export default function EventTicketsScreen() {
                   accent
                 />
                 <StatTile label="Tickets sold" value={String(statistics.totalTickets)} />
+                <StatTile label="Invitations" value={String(invitationCount)} />
               </View>
 
               {statistics.ticketTypeBreakdown.length > 0 ? (
@@ -204,25 +221,56 @@ export default function EventTicketsScreen() {
                 </>
               ) : null}
 
-              <Text style={styles.sectionEyebrow}>Buyers</Text>
+              {invitationGroups ? (
+                <>
+                  <Text style={styles.sectionEyebrow}>Invitations</Text>
+                  <View style={styles.statsRow}>
+                    <StatTile label="Awaiting RSVP" value={String(invitationGroups.awaiting)} />
+                    <StatTile label="Confirmed" value={String(invitationGroups.confirmed)} />
+                    <StatTile label="Checked in" value={String(invitationGroups.checkedIn)} />
+                    <StatTile label="Declined" value={String(invitationGroups.declined)} />
+                    {invitationGroups.cancelled > 0 ? (
+                      <StatTile
+                        label="Cancelled / expired"
+                        value={String(invitationGroups.cancelled)}
+                      />
+                    ) : null}
+                  </View>
+                </>
+              ) : null}
+
+              <Text style={styles.sectionEyebrow}>Tickets</Text>
               {ticketsRevealed ? (
-                <TextField
-                  label=""
-                  placeholder="Search by name, email, or ticket ID"
-                  value={search}
-                  onChangeText={setSearch}
-                  style={styles.search}
-                />
-              ) : (
-             
-                
-                  <Button
-                    label="Show tickets"
-                    variant="secondary"
-                    onPress={() => setTicketsRevealed(true)}
-                    disabled={statistics.totalTickets === 0}
+                <>
+                  <SegmentedControl<TicketKind>
+                    options={[
+                      {
+                        value: "bought",
+                        label: listQuery.data ? `Bought (${boughtTickets.length})` : "Bought",
+                      },
+                      {
+                        value: "invited",
+                        label: listQuery.data ? `Invitations (${invitedTickets.length})` : "Invitations",
+                      },
+                    ]}
+                    value={kind}
+                    onChange={setKind}
                   />
-              
+                  <TextField
+                    label=""
+                    placeholder="Search by name, email, or ticket ID"
+                    value={search}
+                    onChangeText={setSearch}
+                    style={styles.search}
+                  />
+                </>
+              ) : (
+                <Button
+                  label="Show tickets"
+                  variant="secondary"
+                  onPress={() => setTicketsRevealed(true)}
+                  disabled={statsQuery.data.totalCount === 0}
+                />
               )}
 
               {ticketsRevealed && listQuery.isError ? (
@@ -237,8 +285,14 @@ export default function EventTicketsScreen() {
             <ListRow
               title={item.user?.name?.trim() || "Guest"}
               subtitle={`${item.ticketType ?? "Ticket"} · ${new Date(item.createdAt).toLocaleDateString()}`}
-              amount={item.price > 0 ? formatMoney(item.price, CURRENCY) : "Free"}
-              statusLabel={item.status}
+              amount={
+                isInvitationTicket(item)
+                  ? "Invitation"
+                  : item.price > 0
+                    ? formatMoney(item.price, CURRENCY)
+                    : "Free"
+              }
+              statusLabel={isInvitationTicket(item) ? invitationStatusLabel(item.status) : item.status}
               statusColor={STATUS_COLOR(colors)[item.status]}
             />
           )}
@@ -251,11 +305,19 @@ export default function EventTicketsScreen() {
               </View>
             ) : listQuery.isError ? null : (
               <EmptyState
-                title={search ? "No matches" : "No paid tickets yet"}
+                title={
+                  search
+                    ? "No matches"
+                    : kind === "invited"
+                      ? "No invitations yet"
+                      : "No tickets bought yet"
+                }
                 body={
                   search
                     ? "Try a different name, email, or ticket ID."
-                    : "Ticket sales for this event will show up here."
+                    : kind === "invited"
+                      ? "Guests you invite to this event will show up here."
+                      : "Ticket sales for this event will show up here."
                 }
               />
             )
@@ -322,6 +384,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     statsRow: {
       flexDirection: "row",
+      flexWrap: "wrap",
       gap: 12,
     },
     sectionEyebrow: {

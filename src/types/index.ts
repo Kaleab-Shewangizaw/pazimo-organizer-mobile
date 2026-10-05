@@ -198,7 +198,16 @@ export interface DashboardEvent {
   status: EventStatus;
   capacity?: number;
   tags?: string[];
-  ticketStats: { total: number; active: number; used: number };
+  ticketStats: {
+    /** Every ticket document — bought, invited and abandoned alike. Prefer the split below. */
+    total: number;
+    active: number;
+    used: number;
+    /** Bought tickets only (valid statuses). Absent on backends that predate the split. */
+    purchased?: number;
+    /** Organizer-issued invitations still live. Absent on backends that predate the split. */
+    invitations?: number;
+  };
   revenue: number;
   organizerRevenue: number;
   pazimoCommission: number;
@@ -343,6 +352,10 @@ export interface EventTicketsResponse {
     onDoorTickets: number;
     onlineRevenue: number;
     onlineTickets: number;
+    /** Organizer-issued invitations — never part of totalTickets. Absent on older backends. */
+    invitationTickets?: number;
+    /** Invitation admissions per raw ticket status (every status, declined included). Absent on older backends. */
+    invitationStatusBreakdown?: Partial<Record<TicketStatus, number>>;
     ticketTypeBreakdown: TicketTypeBreakdownRow[];
   };
 }
