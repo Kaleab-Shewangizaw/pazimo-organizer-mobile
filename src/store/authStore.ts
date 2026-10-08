@@ -49,6 +49,16 @@ export const useAuthStore = create<AuthState>((set) => ({
     await setStoredToken(token);
     if (user) {
       set({ user, status: "signedIn" });
+      // The login/OTP payloads are a trimmed copy of the user (no
+      // profilePicture, among others — see authController.js), so the
+      // avatar stayed blank until a cold start re-ran bootstrap's /auth/me.
+      // Refresh from /auth/me in the background; a failure here just keeps
+      // the trimmed copy rather than signing the user out.
+      getCurrentUser()
+        .then((me) => {
+          if (useAuthStore.getState().user?._id === user._id) set({ user: me.data });
+        })
+        .catch(() => {});
       return;
     }
     // Some flows (organizer sign-up) only return a token; fetch the
